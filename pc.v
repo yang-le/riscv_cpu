@@ -15,16 +15,20 @@ module pc #(
     output reg [XLEN - 1:0] pc,
     output [XLEN - 1:0] next_pc
 );
-wire alu_b = s_branch_zero ? alu_z : ~alu_z;
-wire [31:0] pc_offset = (s_branch && alu_b) ? imm : 4;
-wire [31:0] npc = s_jump ? (alu_o & ~s_jalr) : (pc + pc_offset);
+    wire alu_b = s_branch_zero ? alu_z : ~alu_z;
+    wire [31:0] pc_offset = (s_branch && alu_b) ? imm : 4;
+    wire [31:0] npc = s_jump ? (alu_o & ~s_jalr) : (pc + pc_offset);
 
-always @(posedge clock, negedge reset)
-    if (~reset)
-        pc <= RESET;
-    else
-        pc <= npc;
+	initial begin
+		pc = 0;
+	end
 
-assign next_pc = pc + 4;
+    always @(posedge clock, posedge reset) begin
+        if (reset)
+            pc <= RESET;
+        else
+            pc <= npc;
+    end
 
+    assign next_pc = pc + 4;
 endmodule

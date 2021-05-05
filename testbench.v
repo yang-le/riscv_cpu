@@ -13,8 +13,8 @@ end
 
 // reset
 initial begin
-   reset = 0; #40;
-   reset = 1;
+   reset = 1; #60;
+   reset = 0;
 end
 
 top dut(

@@ -16,16 +16,14 @@ module csr #(
     wire write_en = s_csr && (!s_csrsc || |rs1);
 	reg [WIDTH - 1:0] regfile[NUM - 1:0];
 
-`ifdef SIM
-	integer i;
-	initial begin
+	initial begin: init
+		integer i;
 		for (i = 0; i < NUM; i = i + 1)
 			regfile[i] = 0;
 	end
-`endif
 
 	always @ (posedge clock) begin
-		if (write_en)
+        if (write_en)
 			regfile[address] <= data_w;
 	end
 

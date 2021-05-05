@@ -5,7 +5,6 @@ module regfile #(
 	parameter NUM = 32
 )(
 	input clock,
-	input reset,
 	input [$clog2(NUM) - 1:0] address_w,
 	input [$clog2(NUM) - 1:0] address_r1,
 	input [$clog2(NUM) - 1:0] address_r2,
@@ -13,17 +12,14 @@ module regfile #(
 	output [WIDTH - 1:0] data_r1,
 	output [WIDTH - 1:0] data_r2
 );
-
 	wire write_en = |address_w;
 	reg [WIDTH - 1:0] regfile[NUM - 1:0];
 
-`ifdef SIM
-	integer i;
-	initial begin
+	initial begin: init
+		integer i;
 		for (i = 0; i < NUM; i = i + 1)
 			regfile[i] = 0;
 	end
-`endif
 
 	always @ (posedge clock) begin
 		if (write_en)
@@ -32,5 +28,4 @@ module regfile #(
 
 	assign data_r1 = regfile[address_r1];
 	assign data_r2 = regfile[address_r2];
-
 endmodule

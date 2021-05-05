@@ -41,7 +41,6 @@ wire [31:0] csr_o;
 
 regfile regs (
 	.clock(clock),
-	.reset(reset),
 	.address_w(address_w),
 	.address_r1(address_r1),
 	.address_r2(address_r2),

@@ -126,4 +126,3 @@
 
 // other
 `define DEBUG
-`define SIM
