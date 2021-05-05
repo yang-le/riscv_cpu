@@ -90,13 +90,21 @@
 
 // fence
 `define FENCE		3'b000
-`define FENCE_TSO	'b10000011001100000000000000001111
-`define PAUSE		'b00000001000000000000000000001111
+`define TSO         4'b1000
 
 // system
-`define ECALL		'b00000000000000000000000001110011
-`define EBREAK		'b00000000000100000000000001110011
+`define ENV         3'b000
+`define CSRRW       3'b001
+`define CSRRS       3'b010
+`define CSRRC       3'b011
+`define CSRRWI      3'b101
+`define CSRRSI      3'b110
+`define CSRRCI      3'b111
 
+`define IMM_ECALL   0
+`define IMM_EBREAK  1
+
+// inst type
 `define TYPE_R      1
 `define TYPE_I      2
 `define TYPE_S      3

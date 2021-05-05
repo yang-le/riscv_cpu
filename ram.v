@@ -1,3 +1,4 @@
+`include "defines.vh"
 
 module generic_mem #(
 	parameter WORDSIZE = 4,

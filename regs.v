@@ -1,3 +1,4 @@
+`include "defines.vh"
 
 module regfile #(
 	parameter WIDTH = 32,
@@ -5,9 +6,9 @@ module regfile #(
 )(
 	input clock,
 	input reset,
-	input [$clog2(NUM) - 1:0]address_w,
-	input [$clog2(NUM) - 1:0]address_r1,
-	input [$clog2(NUM) - 1:0]address_r2,
+	input [$clog2(NUM) - 1:0] address_w,
+	input [$clog2(NUM) - 1:0] address_r1,
+	input [$clog2(NUM) - 1:0] address_r2,
 	input [WIDTH - 1:0] data_w,
 	output [WIDTH - 1:0] data_r1,
 	output [WIDTH - 1:0] data_r2

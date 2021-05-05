@@ -32,8 +32,12 @@ wire s_jalr;
 wire s_jump;
 wire s_branch;
 wire s_branch_zero;
+wire s_csr;
+wire s_csri;
+wire s_csrsc;
 wire alu_z;
 wire [31:0] alu_o;
+wire [31:0] csr_o;
 
 regfile regs (
 	.clock(clock),
@@ -42,9 +46,20 @@ regfile regs (
 	.address_r1(address_r1),
 	.address_r2(address_r2),
 	.data_w(load ? load_data :
-			s_jump ? next_pc : alu_o),
+			s_jump ? next_pc :
+			s_csr ? csr_o : alu_o),
 	.data_r1(data_r1),
 	.data_r2(data_r2)
+);
+
+csr csr_inst(
+	.clock(clock),
+	.s_csr(s_csr),
+    .s_csrsc(s_csrsc),
+    .rs1(address_r1),
+	.address(imm),
+	.data_w(alu_o),
+	.data_r(csr_o)
 );
 
 pc pc_inst(
@@ -62,6 +77,9 @@ pc pc_inst(
 );
 
 decoder decoder_inst (
+`ifdef DEBUG
+	.clock(clock),
+`endif
     .inst(inst),
     .opcode(opcode),
     .rd(address_w),
@@ -79,12 +97,15 @@ decoder decoder_inst (
 	.s_branch(s_branch),
 	.s_branch_zero(s_branch_zero),
 	.s_load(load),
-	.s_store(store)
+	.s_store(store),
+	.s_csr(s_csr),
+	.s_csri(s_csri),
+	.s_csrsc(s_csrsc)
 );
 
 alu alu_inst(
-	.rs1(s_pc ? pc : data_r1),
-	.rs2(s_imm ? imm : data_r2),
+	.rs1(s_pc ? pc : s_csri ? address_r1 : data_r1),
+	.rs2(s_csrsc ? csr_o : s_imm ? imm : data_r2),
 	.opcode(alu_op),
 	.rd(alu_o),
 	.zero(alu_z)

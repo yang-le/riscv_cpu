@@ -40,6 +40,9 @@ endmodule
 module decoder #(
 	parameter XLEN = 32
 )(
+`ifdef DEBUG
+    input clock,
+`endif
     input [XLEN - 1:0] inst,
     output [6:0] opcode,
     output [4:0] rd,
@@ -57,6 +60,9 @@ module decoder #(
     output s_branch_zero,
     output s_load,
     output s_store,
+    output s_csr,
+    output s_csri,
+    output s_csrsc,
     output [2:0] itype
 );
     assign opcode = inst[6:0];
@@ -70,12 +76,16 @@ module decoder #(
     assign s_jump = opcode == `JAL || s_jalr;
     assign s_pc = opcode == `AUIPC || s_jump;
 
-    assign s_imm = !(opcode == `OP || opcode == `BRANCH);
+    assign s_imm = !(opcode == `OP || opcode == `BRANCH || s_csr);
     assign s_branch = opcode == `BRANCH && (funct3 == `BEQ || funct3 == `BNE || funct3 == `BLT || funct3 == `BGE || funct3 == `BLTU || funct3 == `BGEU);
     assign s_branch_zero = opcode == `BRANCH && (funct3 == `BEQ || funct3 == `BGE || funct3 == `BGEU);
 
     assign s_load = opcode == `LOAD && (funct3 == `LB || funct3 == `LH || funct3 == `LW || funct3 == `LBU || funct3 == `LHU);
     assign s_store = opcode == `STORE && (funct3 == `SB || funct3 == `SH || funct3 == `SW);
+
+    assign s_csr = opcode == `SYSTEM && (funct3 == `CSRRW || funct3 == `CSRRS || funct3 == `CSRRC || funct3 == `CSRRWI || funct3 == `CSRRSI || funct3 == `CSRRCI);
+    assign s_csrsc = opcode == `SYSTEM && (funct3 == `CSRRS || funct3 == `CSRRC || funct3 == `CSRRSI || funct3 == `CSRRCI);
+    assign s_csri = opcode == `SYSTEM && (funct3 == `CSRRWI || funct3 == `CSRRSI || funct3 == `CSRRCI);
 
     inst_type inst_type_inst (
         .opcode(opcode),
@@ -124,10 +134,19 @@ module decoder #(
             `BGEU:  alu_op <= `ALU_UCMP;
             default:alu_op <= 0;
         endcase
+        `SYSTEM: case (funct3)
+            `CSRRW,
+            `CSRRWI,
+            `CSRRS,
+            `CSRRSI:alu_op <= `ALU_OR;
+            `CSRRC,
+            `CSRRCI:alu_op <= `ALU_AND;
+            default:alu_op <= 0;
+        endcase
         default:    alu_op <= (s_load || s_store || s_pc) ? `ALU_ADD : 0;
     endcase
 `ifdef DEBUG
-    always @(*) case (opcode)
+    always @(posedge clock) case (opcode)
         `LUI:       $display("decode: LUI");
         `OP_IMM: case (funct3)
             `ADDI:	$display("decode: ADDI");
@@ -180,6 +199,25 @@ module decoder #(
         `AUIPC:     $display("decode: AUIPC");
         `JAL:       $display("decode: JAL");
         `JALR:      $display("decode: JALR");
+        `MISC_MEM: case (funct3)
+            `FENCE: case (inst[31:28])
+                4'b0000: $display("decode: FENCE");
+                `TSO: if (inst[27:20] == 8'b00110011) $display("decode: FENCE.TSO"); else $display("decode: FENCE.TSO but unknown pred %x, succ %x", inst[27:24], inst[23:20]);
+                default: $display("decode: FENCE but unknown fm %x", inst[31:28]);
+            endcase
+            default:$display("decode: MISC_MEM but unknown funct3 %b", funct3);
+        endcase
+        `SYSTEM: case (funct3)
+            `ENV: if (imm == `IMM_ECALL) $display("decode: ECALL"); else
+                            if (imm == `IMM_EBREAK) $display("decode: EBREAK"); else $display("decode: SYSTEM_ENV but unknown imm %b", imm);
+            `CSRRW: $display("decode: CSRRW");
+            `CSRRS: $display("decode: CSRRS");
+            `CSRRC: $display("decode: CSRRC");
+            `CSRRWI:$display("decode: CSRRWI");
+            `CSRRSI:$display("decode: CSRRSI");
+            `CSRRCI:$display("decode: CSRRCI");
+            default:$display("decode: SYSTEM but unknown funct3 %b", funct3);
+        endcase
         default:    $display("decode: unknown opcode %b", opcode);
     endcase
 `endif
