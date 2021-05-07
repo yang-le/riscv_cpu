@@ -10,7 +10,7 @@ module csr #(
     input [4:0] rs1,
 	input [$clog2(NUM) - 1:0] address,
 	input [WIDTH - 1:0] data_w,
-	output [WIDTH - 1:0] data_r
+	output reg [WIDTH - 1:0] data_r
 );
 
     wire write_en = s_csr && (!s_csrsc || |rs1);
@@ -25,7 +25,6 @@ module csr #(
 	always @ (posedge clock) begin
         if (write_en)
 			regfile[address] <= data_w;
+		data_r <= regfile[address];
 	end
-
-	assign data_r = regfile[address];
 endmodule

@@ -15,6 +15,7 @@ module rom #(
     ) mem_inst (
         .clock(clock),
         .write_en(0),
+        .read_en(1),
         .address(address),
         .data_i(0),
         .data_o(data_o)

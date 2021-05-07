@@ -27,6 +27,7 @@ cpu cpu_inst (
 ram ram_inst (
 	.clock(clock),
     .write_en(store),
+	.read_en(load),
 	.address(address),
 	.data_i(store_data),
 	.data_o(load_data)
