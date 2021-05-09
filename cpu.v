@@ -39,11 +39,11 @@ wire alu_z;
 wire [31:0] alu_o;
 wire [31:0] csr_o;
 
-regfile regs (
+regs regs_inst (
 	.clock(clock),
-	.address_w(address_w),
-	.address_r1(address_r1),
-	.address_r2(address_r2),
+	.addr_w(address_w),
+	.addr_r1(address_r1),
+	.addr_r2(address_r2),
 	.data_w(load ? load_data :
 			s_jump ? next_pc :
 			s_csr ? csr_o : alu_o),
@@ -56,7 +56,8 @@ csr csr_inst(
 	.s_csr(s_csr),
     .s_csrsc(s_csrsc),
     .rs1(address_r1),
-	.address(imm),
+	.rd(address_w),
+	.addr(imm),
 	.data_w(alu_o),
 	.data_r(csr_o)
 );

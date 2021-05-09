@@ -27,8 +27,7 @@ cpu cpu_inst (
 ram ram_inst (
 	.clock(clock),
     .write_en(store),
-	.read_en(load),
-	.address(address),
+	.addr(address[31:2]),
 	.data_i(store_data),
 	.data_o(load_data)
 );
@@ -36,8 +35,7 @@ ram ram_inst (
 rom #(
     .DATAFILE("data.txt")
 ) rom_inst (
-	.clock(clock),
-	.address(pc),
+	.addr(pc[31:2]),
 	.data_o(inst)
 );
 

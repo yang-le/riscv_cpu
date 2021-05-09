@@ -1,4 +1,3 @@
-`include "defines.vh"
 
 module csr #(
 	parameter WIDTH = 32,
@@ -8,23 +7,21 @@ module csr #(
 	input s_csr,
     input s_csrsc,
     input [4:0] rs1,
-	input [$clog2(NUM) - 1:0] address,
+	input [4:0] rd,
+	input [$clog2(NUM) - 1:0] addr,
 	input [WIDTH - 1:0] data_w,
-	output reg [WIDTH - 1:0] data_r
+	output [WIDTH - 1:0] data_r
 );
+    wire write_en = s_csr && (~s_csrsc || |rs1);
 
-    wire write_en = s_csr && (!s_csrsc || |rs1);
-	reg [WIDTH - 1:0] regfile[NUM - 1:0];
-
-	initial begin: init
-		integer i;
-		for (i = 0; i < NUM; i = i + 1)
-			regfile[i] = 0;
-	end
-
-	always @ (posedge clock) begin
-        if (write_en)
-			regfile[address] <= data_w;
-		data_r <= regfile[address];
-	end
+    generic_ram #(
+        .WIDTH(WIDTH),
+        .DEPTH(NUM)
+    ) mem_inst (
+        .clock(clock),
+        .write_en(write_en),
+        .addr(addr),
+        .data_i(data_w),
+        .data_o(data_r)
+    );
 endmodule
