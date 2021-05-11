@@ -1,3 +1,4 @@
+`include "defines.vh"
 
 module cpu (
 	input clock,

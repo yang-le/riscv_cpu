@@ -23,7 +23,7 @@ cpu cpu_inst (
 	.address(address),
     .pc(pc)
 );
-
+`ifdef ROM
 ram ram_inst (
 	.clock(clock),
     .write_en(store),
@@ -38,5 +38,17 @@ rom #(
 	.addr(pc[31:2]),
 	.data_o(inst)
 );
-
+`else
+ram_dp #(
+	.DATAFILE("data.txt")
+) mem_inst (
+	.clock(clock),
+    .write_en(store),
+	.iaddr(pc[31:2]),
+	.daddr(address[31:2]),
+	.data_i(store_data),
+	.data_o(load_data),
+	.inst_o(inst)
+);
+`endif
 endmodule
