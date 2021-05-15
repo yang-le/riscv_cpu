@@ -24,6 +24,6 @@ always @(*) case (opcode)
 	default: 	rd <= 0;
 endcase
 
-assign zero = ~|rd;
+assign zero = (rd == 0);
 
 endmodule

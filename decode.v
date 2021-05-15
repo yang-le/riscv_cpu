@@ -127,7 +127,7 @@ module decoder #(
         endcase
         `BRANCH: case (funct3)
             `BEQ,
-            `BNE:   alu_op <= `ALU_XOR;
+            `BNE:   alu_op <= `ALU_SUB;
             `BLT,
             `BGE:   alu_op <= `ALU_CMP;
             `BLTU,

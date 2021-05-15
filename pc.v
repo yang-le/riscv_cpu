@@ -5,20 +5,11 @@ module pc #(
 )(
     input clock,
     input reset,
-    input [XLEN - 1:0] alu_o,
-    input alu_z,
-    input s_jump,
-    input s_jalr,
-    input s_branch,
-    input s_branch_zero,
-    input [XLEN - 1:0] imm,
-    output reg [XLEN - 1:0] pc,
-    output [XLEN - 1:0] next_pc
+    input pause,
+    input s_npc,
+    input [XLEN - 1:0] npc,
+    output reg [XLEN - 1:0] pc
 );
-    wire alu_b = s_branch_zero ? alu_z : ~alu_z;
-    wire [31:0] pc_offset = (s_branch && alu_b) ? imm : 4;
-    wire [31:0] npc = s_jump ? (alu_o & ~s_jalr) : (pc + pc_offset);
-
 	initial begin
 		pc = 0;
 	end
@@ -26,9 +17,26 @@ module pc #(
     always @(posedge clock, posedge reset) begin
         if (reset)
             pc <= RESET;
-        else
-            pc <= npc;
+        else if (!pause)
+            pc <= s_npc ? npc : pc + 4;
     end
+endmodule
 
-    assign next_pc = pc + 4;
+module addr_gen #(
+    parameter XLEN = 32
+)(
+    input alu_z,
+    input s_jump,
+    input s_jalr,
+    input s_branch,
+    input s_branch_zero,
+    input [XLEN - 1:0] imm,
+    input [XLEN - 1:0] pc,
+    output s_npc,
+    output [XLEN - 1:0] npc
+);
+    wire alu_b = s_branch_zero ~^ alu_z ;
+
+    assign s_npc = s_jump || (s_branch && alu_b);
+    assign npc = (pc + imm) & ~(s_jalr);
 endmodule

@@ -17,8 +17,8 @@ cpu cpu_inst (
 	.reset(reset),
 	.load_data(load_data),
     .inst(inst),
-	.load(load),
-	.store(store),
+	.mem_load(load),
+	.mem_store(store),
 	.store_data(store_data),
 	.address(address),
     .pc(pc)
