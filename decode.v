@@ -74,7 +74,7 @@ module decoder #(
 
     assign s_jalr = opcode == `JALR && funct3 == `FUNC3_JALR;
     assign s_jump = opcode == `JAL || s_jalr;
-    assign s_pc = opcode == `AUIPC || s_jump;
+    assign s_pc = opcode == `AUIPC || opcode == `JAL;
 
     assign s_imm = !(opcode == `OP || opcode == `BRANCH || s_csr);
     assign s_branch = opcode == `BRANCH && (funct3 == `BEQ || funct3 == `BNE || funct3 == `BLT || funct3 == `BGE || funct3 == `BLTU || funct3 == `BGEU);

@@ -64,7 +64,7 @@ pc pc_inst(
 );
 
 if_id # (
-	.BYPASS(1)
+	.BYPASS(0)
 ) if_id_inst (
 	.clock(clock),
 	.bubble(bubble),
@@ -76,6 +76,7 @@ if_id # (
 
 // stage ID
 hazard hazard_inst(
+	.id_jump(s_jump),
     .ex_load(ex_load),
     .ex_rd(ex_rd),
     .rs1(rs1),
@@ -111,7 +112,7 @@ decoder decoder_inst (
 );
 
 id_ex # (
-	.BYPASS(1)
+	.BYPASS(0)
 ) id_ex_inst (
 	.clock(clock),
 	.bubble(bubble),
@@ -157,16 +158,19 @@ alu alu_inst(
 	.zero(alu_z)
 );
 
+wire [XLEN - 1:0] next_pc;
 addr_gen addr_gen_inst (
     .alu_z(alu_z),
     .s_jump(ex_jump),
     .s_jalr(ex_jalr),
     .s_branch(ex_branch),
     .s_branch_zero(ex_branch_zero),
+    .pc(ex_pc),
     .imm(ex_imm),
-	.pc(ex_pc),
+    .alu_o(alu_o),
 	.s_npc(s_npc),
-	.npc(npc)
+	.npc(npc),
+	.next_pc(next_pc)
 );
 
 csr csr_inst(
@@ -186,7 +190,7 @@ ex_mem # (
 	.bubble(bubble),
 	.rd_in(ex_rd),
 	.rs2_in(ex_rs2),
-	.alu_in(ex_csr ? csr_o : alu_o),
+	.alu_in(ex_csr ? csr_o : ex_jump ? next_pc : alu_o),
 	.ctrl_in({ex_store, ex_load}),
 	.rd_out(mem_rd),
 	.rs2_out(mem_rs2),
