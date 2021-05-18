@@ -51,14 +51,16 @@ wire s_store, ex_store;
 // control WB
 wire s_load, ex_load, wb_load;
 
+// control pipe
+wire [1:0] if_id_ctrl, id_ex_ctrl, ex_mem_ctrl, mem_wb_ctrl; 
+
 // stage IF
-wire s_npc, bubble;
+wire s_npc, pc_pause;
 wire [XLEN - 1:0] npc;
 pc pc_inst(
 	.clock(clock),
 	.reset(reset),
-	.pause(bubble),
-	.s_npc(s_npc),
+	.pause(pc_pause),
     .npc(npc),
 	.pc(pc)
 );
@@ -67,7 +69,7 @@ if_id # (
 	.BYPASS(0)
 ) if_id_inst (
 	.clock(clock),
-	.bubble(bubble),
+	.p_ctrl(if_id_ctrl),
 	.pc_in(pc),
 	.inst_in(inst),
 	.pc_out(id_pc),
@@ -75,13 +77,16 @@ if_id # (
 );
 
 // stage ID
+wire branch_take;
 hazard hazard_inst(
-	.id_jump(s_jump),
+	.ex_jump(ex_jump),
+	.branch_take(branch_take),
     .ex_load(ex_load),
     .ex_rd(ex_rd),
     .rs1(rs1),
     .rs2(rs2),
-    .bubble(bubble)
+    .pc_pause(pc_pause),
+	.pipe_ctrl({if_id_ctrl, id_ex_ctrl, ex_mem_ctrl, mem_wb_ctrl})
 );
 
 decoder decoder_inst (
@@ -115,7 +120,7 @@ id_ex # (
 	.BYPASS(0)
 ) id_ex_inst (
 	.clock(clock),
-	.bubble(bubble),
+	.p_ctrl(id_ex_ctrl),
 	.rd_in(rd),
 	.rs1_imm_in(rs1),
 	.pc_in(id_pc),
@@ -165,10 +170,11 @@ addr_gen addr_gen_inst (
     .s_jalr(ex_jalr),
     .s_branch(ex_branch),
     .s_branch_zero(ex_branch_zero),
-    .pc(ex_pc),
+	.pc(pc),
+    .ex_pc(ex_pc),
     .imm(ex_imm),
     .alu_o(alu_o),
-	.s_npc(s_npc),
+	.branch_take(branch_take),
 	.npc(npc),
 	.next_pc(next_pc)
 );
@@ -187,7 +193,7 @@ ex_mem # (
 	.BYPASS(0)
 ) ex_mem_inst (
 	.clock(clock),
-	.bubble(bubble),
+	.p_ctrl(ex_mem_ctrl),
 	.rd_in(ex_rd),
 	.rs2_in(ex_rs2),
 	.alu_in(ex_csr ? csr_o : ex_jump ? next_pc : alu_o),
@@ -206,7 +212,7 @@ mem_wb #(
 	.BYPASS(0)
 ) mem_wb_inst (
 	.clock(clock),
-	.bubble(bubble),
+	.p_ctrl(mem_wb_ctrl),
 	.rd_in(mem_rd),
 	.alu_in(mem_alu),
 	.ctrl_in({mem_load}),

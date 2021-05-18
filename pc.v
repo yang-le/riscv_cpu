@@ -6,7 +6,6 @@ module pc #(
     input clock,
     input reset,
     input pause,
-    input s_npc,
     input [XLEN - 1:0] npc,
     output reg [XLEN - 1:0] pc
 );
@@ -18,7 +17,7 @@ module pc #(
         if (reset)
             pc <= RESET;
         else if (!pause)
-            pc <= s_npc ? npc : pc + 4;
+            pc <= npc;
     end
 endmodule
 
@@ -31,15 +30,14 @@ module addr_gen #(
     input s_branch,
     input s_branch_zero,
     input [XLEN - 1:0] pc,
+    input [XLEN - 1:0] ex_pc,
     input [XLEN - 1:0] imm,
     input [XLEN - 1:0] alu_o,
-    output s_npc,
+    output branch_take,
     output [XLEN - 1:0] npc,
     output [XLEN - 1:0] next_pc
 );
-    wire branch = s_branch && (s_branch_zero ~^ alu_z);
-
-    assign s_npc = s_jump || branch;
+    assign branch_take = s_branch && (s_branch_zero ~^ alu_z);
     assign npc = s_jump ? (alu_o & ~s_jalr) : next_pc;
-    assign next_pc = pc + (branch ? imm : 4);
+    assign next_pc = (branch_take ? ex_pc : pc) + (branch_take ? imm : 4);
 endmodule

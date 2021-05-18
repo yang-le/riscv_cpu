@@ -4,7 +4,7 @@ module if_id #(
     parameter BYPASS = 0
 )(
     input clock,
-    input bubble,
+    input [1:0] p_ctrl,
     input [XLEN - 1:0] pc_in, inst_in,
     output [XLEN - 1:0] pc_out, inst_out
 );
@@ -14,7 +14,8 @@ end else begin
     reg [XLEN - 1:0] pc_reg = 0, inst_reg = 0;
 
     always @(posedge clock)
-        {pc_reg, inst_reg} <= bubble ? 0 : {pc_in, inst_in};
+        if (~p_ctrl[0])
+            {pc_reg, inst_reg} <= p_ctrl[1] ? 0 : {pc_in, inst_in};
 
     assign {pc_out, inst_out} = {pc_reg, inst_reg};
 end endgenerate
@@ -25,7 +26,7 @@ module id_ex #(
     parameter BYPASS = 0
 )(
     input clock,
-    input bubble,
+    input [1:0] p_ctrl,
     input [4:0] rd_in, rs1_imm_in,
     input [XLEN - 1:0] pc_in, rs1_in, rs2_in, imm_in,
     input [14:0] ctrl_in,
@@ -41,7 +42,8 @@ end else begin
     reg [XLEN - 1:0] pc_reg = 0, rs1_reg = 0, rs2_reg = 0, imm_reg = 0;
 
     always @(posedge clock)
-        {rd_reg, rs1_imm_reg, pc_reg, rs1_reg, rs2_reg, imm_reg, ctrl_reg} <= bubble ? 0 : {rd_in, rs1_imm_in, pc_in, rs1_in, rs2_in, imm_in, ctrl_in};
+        if (~p_ctrl[0])
+            {rd_reg, rs1_imm_reg, pc_reg, rs1_reg, rs2_reg, imm_reg, ctrl_reg} <= p_ctrl[1] ? 0 : {rd_in, rs1_imm_in, pc_in, rs1_in, rs2_in, imm_in, ctrl_in};
 
     assign {rd_out, rs1_imm_out, pc_out, rs1_out, rs2_out, imm_out, ctrl_out} = {rd_reg, rs1_imm_reg, pc_reg, rs1_reg, rs2_reg, imm_reg, ctrl_reg};
 end endgenerate
@@ -52,7 +54,7 @@ module ex_mem #(
     parameter BYPASS = 0
 )(
     input clock,
-    input bubble,
+    input [1:0] p_ctrl,
     input [4:0] rd_in,
     input [XLEN - 1:0] rs2_in, alu_in,
     input [1:0] ctrl_in,
@@ -68,7 +70,8 @@ end else begin
     reg [XLEN - 1:0] rs2_reg = 0, alu_reg = 0;
 
     always @(posedge clock)
-        {rd_reg, rs2_reg, alu_reg, ctrl_reg} <= bubble ? 0 : {rd_in, rs2_in, alu_in, ctrl_in};
+        if (~p_ctrl[0])
+            {rd_reg, rs2_reg, alu_reg, ctrl_reg} <= p_ctrl[1] ? 0 : {rd_in, rs2_in, alu_in, ctrl_in};
 
     assign {rd_out, rs2_out, alu_out, ctrl_out} = {rd_reg, rs2_reg, alu_reg, ctrl_reg};
 end endgenerate
@@ -79,7 +82,7 @@ module mem_wb #(
     parameter BYPASS = 0
 )(
     input clock,
-    input bubble,
+    input [1:0] p_ctrl,
     input [4:0] rd_in,
     input [XLEN - 1:0] alu_in,
     input [0:0] ctrl_in,
@@ -95,7 +98,8 @@ end else begin
     reg [XLEN - 1:0] alu_reg = 0;
 
     always @(posedge clock)
-        {rd_reg, alu_reg, ctrl_reg} <= bubble ? 0 : {rd_in, alu_in, ctrl_in};
+        if (~p_ctrl[0])
+            {rd_reg, alu_reg, ctrl_reg} <= p_ctrl[1] ? 0 : {rd_in, alu_in, ctrl_in};
 
     assign {rd_out, alu_out, ctrl_out} = {rd_reg, alu_reg, ctrl_reg};
 end endgenerate
