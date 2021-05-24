@@ -21,7 +21,7 @@ always @(*) case (opcode)
 	`ALU_SLL:	rd <= rs1 << rs2[4:0];
 	`ALU_SRL:	rd <= rs1 >> rs2[4:0];
 	`ALU_SRA: 	rd <= rs1 >>> rs2[4:0];
-	default: 	rd <= 0;
+	default: 	rd <= -1;
 endcase
 
 assign zero = (rd == 0);

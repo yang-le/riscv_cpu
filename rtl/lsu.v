@@ -5,8 +5,7 @@ module lsu #(
 )(
     input s_load,
     input s_store,
-    input funct3,
-    output 
+    input funct3
 );
 
 endmodule
