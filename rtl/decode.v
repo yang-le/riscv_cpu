@@ -23,7 +23,7 @@ endmodule
 module imm_gen #(
 	parameter XLEN = 32
 )(
-    input [XLEN - 1:0] inst,
+    input [31:0] inst,
     input [2:0] itype,
     output reg [XLEN - 1:0] imm
 );
@@ -43,7 +43,7 @@ module decoder #(
 `ifdef DEBUG
     input clock,
 `endif
-    input [XLEN - 1:0] inst,
+    input [31:0] inst,
     output [6:0] opcode,
     output [4:0] rd,
     output [2:0] funct3,
@@ -146,6 +146,9 @@ module decoder #(
         default:    alu_op <= (s_load || s_store || s_pc) ? `ALU_ADD : 0;
     endcase
 `ifdef DEBUG
+    always @(posedge clock)
+        if (inst == 0 && $time > `CYCLE) $finish;
+
     always @(posedge clock) case (opcode)
         `LUI:       $display("decode: LUI");
         `OP_IMM: case (funct3)

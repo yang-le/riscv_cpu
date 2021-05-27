@@ -13,7 +13,7 @@ module pc #(
 		pc = 0;
 	end
 
-    always @(posedge clock, posedge reset) begin
+    always @(posedge clock) begin
         if (reset)
             pc <= RESET;
         else if (!pause)

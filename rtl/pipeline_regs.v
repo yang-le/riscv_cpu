@@ -1,3 +1,4 @@
+`include "defines.vh"
 
 module if_id #(
     parameter XLEN = 32,
@@ -5,17 +6,20 @@ module if_id #(
 )(
     input clock,
     input [1:0] p_ctrl,
-    input [XLEN - 1:0] pc_in, inst_in,
-    output [XLEN - 1:0] pc_out, inst_out
+    input [XLEN - 1:0] pc_in,
+    input [31:0] inst_in,
+    output [XLEN - 1:0] pc_out,
+    output [31:0] inst_out
 );
 generate if (BYPASS) begin
     assign {pc_out, inst_out} = {pc_in, inst_in};
 end else begin
-    reg [XLEN - 1:0] pc_reg = 0, inst_reg = 0;
+    reg [XLEN - 1:0] pc_reg = 0;
+    reg [31:0] inst_reg = 0;
 
     always @(posedge clock)
         if (~p_ctrl[0])
-            {pc_reg, inst_reg} <= p_ctrl[1] ? 0 : {pc_in, inst_in};
+            {pc_reg, inst_reg} <= p_ctrl[1] ? {{XLEN{1'b0}}, `NOP} : {pc_in, inst_in};
 
     assign {pc_out, inst_out} = {pc_reg, inst_reg};
 end endgenerate

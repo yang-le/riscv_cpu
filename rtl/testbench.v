@@ -1,19 +1,24 @@
+`include "defines.vh"
+
 `timescale 1ns/1ps
 
 module testbench();
+
+localparam HCYCLE = `CYCLE / 2;
 
 reg clock;
 reg reset;
 
 // 25MHz clock
 always begin
-    clock = 0; #40;
-    clock = 1; #40;
+    clock = 1; # HCYCLE;
+    clock = 0; # HCYCLE;
 end
 
 // reset
 initial begin
-   reset = 1; #60;
+   reset = 0; # HCYCLE;
+   reset = 1; # `CYCLE;
    reset = 0;
 end
 
