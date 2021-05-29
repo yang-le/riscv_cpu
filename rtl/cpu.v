@@ -28,7 +28,7 @@ wire [4:0] rd, ex_rd, mem_rd, wb_rd;				// use by stage WB
 wire [4:0] rs1, rs2;								// use by regs
 wire [XLEN - 1:0] id_rs1, ex_rs1, id_rs2, ex_rs2;	// use by forward
 wire [XLEN - 1:0] id_imm, ex_imm;					// use by alu
-wire [4:0] ex_rs1_imm;								// use by alu for csr
+wire [4:0] ex_rs1_fw, ex_rs2_fw;					// use by alu for csr, also used by forward
 
 // EX_MEM
 wire [XLEN - 1:0] mem_rs2;							// store data
@@ -92,6 +92,7 @@ hazard hazard_inst(
 decoder decoder_inst (
 `ifdef DEBUG
 	.clock(clock),
+	.pc(id_pc),
 `endif
     .inst(id_inst),
     .opcode(opcode),
@@ -122,14 +123,16 @@ id_ex # (
 	.clock(clock),
 	.p_ctrl(id_ex_ctrl),
 	.rd_in(rd),
-	.rs1_imm_in(rs1),
+	.rs1_fw_in(rs1),
+	.rs2_fw_in(rs2),
 	.pc_in(id_pc),
 	.rs1_in(id_rs1),
 	.rs2_in(id_rs2),
 	.imm_in(id_imm),
 	.ctrl_in({id_alu_op, s_pc, s_imm, s_jalr, s_branch, s_branch_zero, s_csr, s_csri, s_csrsc, s_jump, s_store, s_load}),
 	.rd_out(ex_rd),
-	.rs1_imm_out(ex_rs1_imm),
+	.rs1_fw_out(ex_rs1_fw),
+	.rs2_fw_out(ex_rs2_fw),
 	.pc_out(ex_pc),
 	.rs1_out(ex_rs1),
 	.rs2_out(ex_rs2),	
@@ -143,8 +146,8 @@ wire [XLEN - 1:0] wb_rd_reg = wb_load ? load_data : wb_alu;
 forward forward_inst (
     .mem_rd(mem_rd),
     .wb_rd(wb_rd),
-    .rs1(rs1),
-    .rs2(rs2),
+    .rs1(ex_rs1_fw),
+    .rs2(ex_rs2_fw),
     .ex_rs1(ex_rs1),
     .ex_rs2(ex_rs2),
     .mem_rd_reg(mem_alu),
@@ -156,7 +159,7 @@ forward forward_inst (
 wire alu_z;
 wire [XLEN - 1:0] alu_o, csr_o;
 alu alu_inst(
-	.rs1(ex_csri ? ex_rs1_imm : ex_s_pc? ex_pc : f_rs1),
+	.rs1(ex_csri ? ex_rs1_fw : ex_s_pc? ex_pc : f_rs1),
 	.rs2(ex_csr ? csr_o : ex_s_imm ? ex_imm : f_rs2),
 	.opcode(ex_alu_op),
 	.rd(alu_o),
@@ -183,7 +186,7 @@ csr csr_inst(
 	.clock(clock),
 	.s_csr(ex_csr),
     .s_csrsc(ex_csrsc),
-    .rs1(ex_rs1_imm),
+    .rs1(ex_rs1_fw),
 	.addr(ex_imm),
 	.data_w(alu_o),
 	.data_r(csr_o)
