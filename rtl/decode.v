@@ -42,6 +42,7 @@ module decoder #(
 )(
 `ifdef DEBUG
     input clock,
+    input [XLEN - 1:0] pc,
 `endif
     input [31:0] inst,
     output [6:0] opcode,
@@ -151,78 +152,78 @@ module decoder #(
 `endif
 `ifdef DEBUG
     always @(posedge clock) case (opcode)
-        `LUI:       $display("decode: LUI");
+        `LUI:       $display("decode: %x: LUI", pc);
         `OP_IMM: case (funct3)
-            `ADDI:	$display("decode: ADDI");
-            `SLTI: 	$display("decode: SLTI");
-            `SLTIU:	$display("decode: SLTIU");
-            `ANDI: 	$display("decode: ANDI");
-            `ORI:	$display("decode: ORI");
-            `XORI:	$display("decode: XORI");
-            `SLLI:	if (funct7 == `FUNC7_SLLI) $display("decode: SLLI"); else $display("decode: SLLI but unknown funct7 %b", funct7);
-            `SRLI:	if (funct7 == `FUNC7_SRLI) $display("decode: SRLI"); else
-                        if (funct7 == `FUNC7_SRAI) $display("decode: SRAI"); else $display("decode: SRLI but unknown funct7 %b", funct7);
-            default:$display("decode: OP_IMM but unknown funct3 %b", funct3);
+            `ADDI:	$display("decode: %x: ADDI", pc);
+            `SLTI: 	$display("decode: %x: SLTI", pc);
+            `SLTIU:	$display("decode: %x: SLTIU", pc);
+            `ANDI: 	$display("decode: %x: ANDI", pc);
+            `ORI:	$display("decode: %x: ORI", pc);
+            `XORI:	$display("decode: %x: XORI", pc);
+            `SLLI:	if (funct7 == `FUNC7_SLLI) $display("decode: %x: SLLI", pc); else $display("error: %x: SLLI but unknown funct7 %b", pc, funct7);
+            `SRLI:	if (funct7 == `FUNC7_SRLI) $display("decode: %x: SRLI", pc); else
+                        if (funct7 == `FUNC7_SRAI) $display("decode: %x: SRAI", pc); else $display("error: %x: SRLI but unknown funct7 %b", pc, funct7);
+            default:$display("error: %x: OP_IMM but unknown funct3 %b", pc, funct3);
         endcase
         `OP: case (funct3)
-            `ADD:	if (funct7 == `FUNC7_ADD) $display("decode: ADD"); else
-                        if (funct7 == `FUNC7_SUB) $display("decode: SUB"); else $display("decode: ADD but unknown funct7 %b", funct7);
-            `SLT:	if (funct7 == `FUNC7_SLT) $display("decode: SLT"); else  $display("decode: SLT but unknown funct7 %b", funct7);
-            `SLTU:	if (funct7 == `FUNC7_SLTU) $display("decode: SLTU"); else  $display("decode: SLTU but unknown funct7 %b", funct7);
-            `AND:	if (funct7 == `FUNC7_AND) $display("decode: AND"); else  $display("decode: AND but unknown funct7 %b", funct7);
-            `OR:	if (funct7 == `FUNC7_OR) $display("decode: OR"); else  $display("decode: OR but unknown funct7 %b", funct7);
-            `XOR:	if (funct7 == `FUNC7_XOR) $display("decode: XOR"); else  $display("decode: XOR but unknown funct7 %b", funct7);
-            `SLL:	if (funct7 == `FUNC7_SLL) $display("decode: SLL"); else  $display("decode: SLL but unknown funct7 %b", funct7);
-            `SRL:	if (funct7 == `FUNC7_SRL) $display("decode: SRL"); else
-                        if (funct7 == `FUNC7_SRA) $display("decode: SRA"); else  $display("decode: SRL but unknown funct7 %b", funct7);
-            default:$display("decode: OP but unknown funct3 %b", funct3);
+            `ADD:	if (funct7 == `FUNC7_ADD) $display("decode: %x: ADD", pc); else
+                        if (funct7 == `FUNC7_SUB) $display("decode: %x: SUB", pc); else $display("error: %x: ADD but unknown funct7 %b", pc, funct7);
+            `SLT:	if (funct7 == `FUNC7_SLT) $display("decode: %x: SLT", pc); else  $display("error: %x: SLT but unknown funct7 %b", pc, funct7);
+            `SLTU:	if (funct7 == `FUNC7_SLTU) $display("decode: %x: SLTU", pc); else  $display("error: %x: SLTU but unknown funct7 %b", pc, funct7);
+            `AND:	if (funct7 == `FUNC7_AND) $display("decode: %x: AND", pc); else  $display("error: %x: AND but unknown funct7 %b", pc, funct7);
+            `OR:	if (funct7 == `FUNC7_OR) $display("decode: %x: OR", pc); else  $display("error: %x: OR but unknown funct7 %b", pc, funct7);
+            `XOR:	if (funct7 == `FUNC7_XOR) $display("decode: %x: XOR", pc); else  $display("error: %x: XOR but unknown funct7 %b", pc, funct7);
+            `SLL:	if (funct7 == `FUNC7_SLL) $display("decode: %x: SLL", pc); else  $display("error: %x: SLL but unknown funct7 %b", pc, funct7);
+            `SRL:	if (funct7 == `FUNC7_SRL) $display("decode: %x: SRL", pc); else
+                        if (funct7 == `FUNC7_SRA) $display("decode: %x: SRA", pc); else  $display("error: %x: SRL but unknown funct7 %b", pc, funct7);
+            default:$display("error: %x: OP but unknown funct3 %b", pc, funct3);
         endcase
         `BRANCH: case (funct3)
-            `BEQ:   $display("decode: BEQ");
-            `BNE:   $display("decode: BNE");
-            `BLT:   $display("decode: BLT");
-            `BGE:   $display("decode: BGE");
-            `BLTU:  $display("decode: BLTU");
-            `BGEU:  $display("decode: BGEU");
-            default:$display("decode: BRANCH but unknown funct3 %b", funct3);
+            `BEQ:   $display("decode: %x: BEQ", pc);
+            `BNE:   $display("decode: %x: BNE", pc);
+            `BLT:   $display("decode: %x: BLT", pc);
+            `BGE:   $display("decode: %x: BGE", pc);
+            `BLTU:  $display("decode: %x: BLTU", pc);
+            `BGEU:  $display("decode: %x: BGEU", pc);
+            default:$display("error: %x: BRANCH but unknown funct3 %b", pc, funct3);
         endcase
         `LOAD: case (funct3)
-            `LB:    $display("decode: LB");
-            `LH:    $display("decode: LH");
-            `LW:    $display("decode: LW");
-            `LBU:   $display("decode: LBU");
-            `LHU:   $display("decode: LHU");
-            default:$display("decode: LOAD but unknown funct3 %b", funct3);
+            `LB:    $display("decode: %x: LB", pc);
+            `LH:    $display("decode: %x: LH", pc);
+            `LW:    $display("decode: %x: LW", pc);
+            `LBU:   $display("decode: %x: LBU", pc);
+            `LHU:   $display("decode: %x: LHU", pc);
+            default:$display("error: LOAD but unknown funct3 %b", pc, funct3);
         endcase
         `STORE: case (funct3)
-            `SB:    $display("decode: SB");
-            `SH:    $display("decode: SH");
-            `SW:    $display("decode: SW");
-            default:$display("decode: STORE but unknown funct3 %b", funct3);
+            `SB:    $display("decode: %x: SB", pc);
+            `SH:    $display("decode: %x: SH", pc);
+            `SW:    $display("decode: %x: SW", pc);
+            default:$display("error: %x: STORE but unknown funct3 %b", pc, funct3);
         endcase
-        `AUIPC:     $display("decode: AUIPC");
-        `JAL:       $display("decode: JAL");
-        `JALR:      $display("decode: JALR");
+        `AUIPC:     $display("decode: %x: AUIPC", pc);
+        `JAL:       $display("decode: %x: JAL", pc);
+        `JALR:      $display("decode: %x: JALR", pc);
         `MISC_MEM: case (funct3)
             `FENCE: case (inst[31:28])
-                4'b0000: $display("decode: FENCE");
-                `TSO: if (inst[27:20] == 8'b00110011) $display("decode: FENCE.TSO"); else $display("decode: FENCE.TSO but unknown pred %x, succ %x", inst[27:24], inst[23:20]);
-                default: $display("decode: FENCE but unknown fm %x", inst[31:28]);
+                4'b0000: $display("decode: %x: FENCE", pc);
+                `TSO: if (inst[27:20] == 8'b00110011) $display("decode: %x: FENCE.TSO", pc); else $display("error: %x: FENCE.TSO but unknown pred %x, succ %x", pc, inst[27:24], inst[23:20]);
+                default: $display("error: %x: FENCE but unknown fm %x", pc, inst[31:28]);
             endcase
-            default:$display("decode: MISC_MEM but unknown funct3 %b", funct3);
+            default:$display("error: %x: MISC_MEM but unknown funct3 %b", pc, funct3);
         endcase
         `SYSTEM: case (funct3)
-            `ENV: if (imm == `IMM_ECALL) $display("decode: ECALL"); else
-                            if (imm == `IMM_EBREAK) $display("decode: EBREAK"); else $display("decode: SYSTEM_ENV but unknown imm %b", imm);
-            `CSRRW: $display("decode: CSRRW");
-            `CSRRS: $display("decode: CSRRS");
-            `CSRRC: $display("decode: CSRRC");
-            `CSRRWI:$display("decode: CSRRWI");
-            `CSRRSI:$display("decode: CSRRSI");
-            `CSRRCI:$display("decode: CSRRCI");
-            default:$display("decode: SYSTEM but unknown funct3 %b", funct3);
+            `ENV: if (imm == `IMM_ECALL) $display("decode: %x: ECALL", pc); else
+                            if (imm == `IMM_EBREAK) $display("decode: %x: EBREAK", pc); else $display("error: %x: SYSTEM_ENV but unknown imm %b", pc, imm);
+            `CSRRW: $display("decode: %x: CSRRW", pc);
+            `CSRRS: $display("decode: %x: CSRRS", pc);
+            `CSRRC: $display("decode: %x: CSRRC", pc);
+            `CSRRWI:$display("decode: %x: CSRRWI", pc);
+            `CSRRSI:$display("decode: %x: CSRRSI", pc);
+            `CSRRCI:$display("decode: %x: CSRRCI", pc);
+            default:$display("error: %x: SYSTEM but unknown funct3 %b", pc, funct3);
         endcase
-        default:    $display("decode: unknown opcode %b", opcode);
+        default:    $display("error: %x: unknown opcode %b", pc, opcode);
     endcase
 `endif
 endmodule
