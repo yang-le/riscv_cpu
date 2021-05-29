@@ -12,15 +12,15 @@ module generic_ram #(
 );
     reg [WIDTH - 1:0] words[DEPTH - 1:0];
 
-	initial begin: init
-		integer i;
-		for (i = 0; i < DEPTH; i = i + 1)
-			words[i] = 0;
-	end
-
     generate if (DATAFILE)
         initial begin
             $readmemh(DATAFILE, words);
+        end
+    else
+        initial begin: init
+            integer i;
+            for (i = 0; i < DEPTH; i = i + 1)
+                words[i] = 0;
         end
     endgenerate
 
@@ -48,15 +48,15 @@ module generic_ram_dp #(
 );
     reg [WIDTH - 1:0] words[DEPTH - 1:0];
 
-	initial begin: init
-		integer i;
-		for (i = 0; i < DEPTH; i = i + 1)
-			words[i] = 0;
-	end
-
     generate if (DATAFILE)
         initial begin
             $readmemh(DATAFILE, words);
+        end
+    else
+        initial begin: init
+            integer i;
+            for (i = 0; i < DEPTH; i = i + 1)
+                words[i] = 0;
         end
     endgenerate
 
@@ -79,15 +79,15 @@ module generic_rom #(
 );
     reg [WIDTH - 1:0] words[DEPTH - 1:0];
 
-	initial begin: init
-		integer i;
-		for (i = 0; i < DEPTH; i = i + 1)
-			words[i] = 0;
-	end
-
     generate if (DATAFILE)
         initial begin
             $readmemh(DATAFILE, words);
+        end
+    else
+        initial begin: init
+            integer i;
+            for (i = 0; i < DEPTH; i = i + 1)
+                words[i] = 0;
         end
     endgenerate
 

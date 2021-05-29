@@ -1,6 +1,8 @@
-`include "defines.vh"
+`ifndef VERILATOR
 
+`include "defines.vh"
 `timescale 1ns/1ps
+`define CYCLE   40
 
 module testbench();
 
@@ -28,3 +30,5 @@ top dut(
 );
 
 endmodule
+
+`endif

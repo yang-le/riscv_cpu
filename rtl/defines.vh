@@ -126,5 +126,4 @@
 
 // other
 `define DEBUG
-`define CYCLE   40
 `define NOP     32'h00000013

@@ -26,7 +26,7 @@ VERILATOR = $(VERILATOR_ROOT)/bin/verilator
 VERILATOR_COVERAGE = $(VERILATOR_ROOT)/bin/verilator_coverage
 endif
 
-VERILATOR_TOP = testbench
+VERILATOR_TOP = top
 
 # Generate C++ in executable form
 VERILATOR_FLAGS += -cc --exe

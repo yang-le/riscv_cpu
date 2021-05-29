@@ -145,10 +145,11 @@ module decoder #(
         endcase
         default:    alu_op <= (s_load || s_store || s_pc) ? `ALU_ADD : 0;
     endcase
+`ifdef VERILATOR
+    always @(*)
+        if (inst == 0 && $time > 1) $finish;
+`endif
 `ifdef DEBUG
-    always @(posedge clock)
-        if (inst == 0 && $time > `CYCLE) $finish;
-
     always @(posedge clock) case (opcode)
         `LUI:       $display("decode: LUI");
         `OP_IMM: case (funct3)
