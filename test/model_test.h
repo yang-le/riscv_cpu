@@ -1,8 +1,24 @@
 #ifndef _COMPLIANCE_MODEL_H
 #define _COMPLIANCE_MODEL_H
 
+#define TESTUTIL_BASE 0x20000000
+#define TESTUTIL_ADDR_HALT (TESTUTIL_BASE + 0x0)
+#define TESTUTIL_ADDR_BEGIN_SIGNATURE (TESTUTIL_BASE + 0x4)
+#define TESTUTIL_ADDR_END_SIGNATURE (TESTUTIL_BASE + 0x8)
+
 #define RVMODEL_HALT                                                    \
-  self_loop:  j self_loop;
+  /* tell simulation about location of begin_signature */               \
+  la t0, begin_signature;                                               \
+  li t1, TESTUTIL_ADDR_BEGIN_SIGNATURE;                                 \
+  sw t0, 0(t1);                                                         \
+  /* tell simulation about location of end_signature */                 \
+  la t0, end_signature;                                                 \
+  li t1, TESTUTIL_ADDR_END_SIGNATURE;                                   \
+  sw t0, 0(t1);                                                         \
+  /* dump signature and terminate simulation */                         \
+  li t0, 1;                                                             \
+  li t1, TESTUTIL_ADDR_HALT;                                            \
+  sw t0, 0(t1);                                                         \
 
 #define RVMODEL_DATA_BEGIN                                              \
   .align 4; .global begin_signature; begin_signature:

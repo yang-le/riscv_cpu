@@ -28,9 +28,6 @@ int main(int argc, char** argv, char** env) {
     // Prevent unused variable warnings
     if (false && argc && argv && env) {}
 
-    // Create logs/ directory in case we have traces to put under it
-    Verilated::mkdir("logs");
-
     // Set debug level, 0 is off, 9 is highest presently used
     // May be overridden by commandArgs argument parsing
     Verilated::debug(0);
@@ -113,6 +110,7 @@ int main(int argc, char** argv, char** env) {
 
     // Coverage analysis (calling write only after the test is known to pass)
 #if VM_COVERAGE
+    Verilated::mkdir("logs");
     //Verilated::coveragep()->write("logs/coverage.dat");
 #endif
 

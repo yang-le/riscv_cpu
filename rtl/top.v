@@ -12,6 +12,34 @@ wire [31:0] store_data;
 wire [31:0] address;
 wire [31:0] pc;
 
+`ifdef VERILATOR
+localparam TEST_BASE = 32'h20000000;
+localparam ADDR_HALT = TEST_BASE + 0;
+localparam ADDR_SIG_BEGIN = TEST_BASE + 4;
+localparam ADDR_SIG_END = TEST_BASE + 8;
+
+string data_file = 0, dump_file = 0;
+reg [31:0] sig_begin = 0, sig_end = 0;
+
+initial begin
+	if ($value$plusargs("data_file=%s", data_file))
+		$readmemh(data_file, mem_inst.mem_inst.words);
+
+	$value$plusargs("dump_file=%s", dump_file);
+end
+
+always @(clock) begin
+	if (store && address == ADDR_HALT && store_data == 1) begin
+		if (dump_file != 0)
+			$writememh(dump_file, mem_inst.mem_inst.words, sig_begin, sig_end);
+		$finish;
+	end
+
+	if (store && address == ADDR_SIG_BEGIN) sig_begin <= store_data >> 2;
+	if (store && address == ADDR_SIG_END) sig_end <= store_data >> 2;
+end
+`endif
+
 cpu cpu_inst (
 	.clock(clock),
 	.reset(reset),
@@ -32,16 +60,16 @@ ram ram_inst (
 	.data_o(load_data)
 );
 
-rom #(
-    .DATAFILE("data.txt")
-) rom_inst (
+rom rom_inst (
 	.addr(pc[31:2]),
 	.data_o(inst)
 );
 `else
-ram_dp #(
-	.DATAFILE("data.txt")
-) mem_inst (
+ram_dp
+`ifdef VERILATOR
+#(.DEPTH(1024 * 1024))
+`endif
+mem_inst (
 	.clock(clock),
     .write_en(store),
 	.iaddr(pc[31:2]),
