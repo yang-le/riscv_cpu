@@ -32,7 +32,7 @@ module imm_gen #(
         `TYPE_S: imm <= {{21{inst[31]}}, inst[30:25], inst[11:7]};
         `TYPE_B: imm <= {{20{inst[31]}}, inst[7], inst[30:25], inst[11:8], 1'b0};
         `TYPE_U: imm <= {inst[31:12], 12'b0};
-        `TYPE_J: imm <= {inst[31], inst[19:12], inst[20], inst[30:21], 1'b0};
+        `TYPE_J: imm <= {{12{inst[31]}}, inst[19:12], inst[20], inst[30:21], 1'b0};
         default: imm <= 0;
     endcase
 endmodule
@@ -144,12 +144,8 @@ module decoder #(
             `CSRRCI:alu_op <= `ALU_AND;
             default:alu_op <= 0;
         endcase
-        default:    alu_op <= (s_load || s_store || s_pc) ? `ALU_ADD : 0;
+        default:    alu_op <= (s_load || s_store || s_pc || s_jalr) ? `ALU_ADD : 0;
     endcase
-`ifdef VERILATOR
-    always @(*)
-        if (inst == 0 && $time > 1) $finish;
-`endif
 `ifdef DEBUG
     always @(posedge clock) case (opcode)
         `LUI:       $display("decode: %x: LUI", pc);

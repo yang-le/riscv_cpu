@@ -198,7 +198,7 @@ ex_mem # (
 	.clock(clock),
 	.p_ctrl(ex_mem_ctrl),
 	.rd_in(ex_rd),
-	.rs2_in(ex_rs2),
+	.rs2_in(f_rs2),
 	.alu_in(ex_csr ? csr_o : ex_jump ? next_pc : alu_o),
 	.ctrl_in({ex_store, ex_load}),
 	.rd_out(mem_rd),
