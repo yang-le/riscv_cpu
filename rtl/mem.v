@@ -2,7 +2,8 @@
 module generic_ram #(
 	parameter WIDTH = 8,
 	parameter DEPTH = 32,
-    parameter DATAFILE = ""
+    parameter DATAFILE = "",
+    parameter READ_OLD = 0
 )(
 	input clock,
 	input write_en,
@@ -28,14 +29,19 @@ module generic_ram #(
 		if (write_en)
             words[addr] <= data_i;
     end
-
-    assign data_o = words[addr];
+    
+    generate if (READ_OLD)
+        assign data_o = words[addr];
+    else
+        assign data_o = write_en ? data_i : words[addr];
+    endgenerate
 endmodule
 
 module generic_ram_dp #(
 	parameter WIDTH = 8,
 	parameter DEPTH = 32,
-    parameter DATAFILE = ""
+    parameter DATAFILE = "",
+    parameter READ_OLD = 0
 )(
 	input clock,
 	input write_en,
@@ -65,8 +71,13 @@ module generic_ram_dp #(
             words[addr_w] <= data_i;
     end
 
-    assign data_o1 = words[addr_r1];
-    assign data_o2 = words[addr_r2];
+    generate if (READ_OLD) begin
+        assign data_o1 = words[addr_r1];
+        assign data_o2 = words[addr_r2];
+    end else begin
+        assign data_o1 = (write_en && addr_w == addr_r1) ? data_i : words[addr_r1];
+        assign data_o2 = (write_en && addr_w == addr_r2) ? data_i : words[addr_r2];
+    end endgenerate
 endmodule
 
 module generic_rom #(

@@ -28,15 +28,23 @@ initial begin
 	$value$plusargs("dump_file=%s", dump_file);
 end
 
-always @(clock) begin
+always @(posedge clock) begin
 	if (store && address == ADDR_HALT && store_data == 1) begin
-		if (dump_file != 0)
+		if (dump_file != 0) begin
+			$display("dump: %x - %x", sig_begin, sig_end);
 			$writememh(dump_file, mem_inst.mem_inst.words, sig_begin, sig_end);
+		end
 		$finish;
 	end
 
-	if (store && address == ADDR_SIG_BEGIN) sig_begin <= store_data >> 2;
-	if (store && address == ADDR_SIG_END) sig_end <= store_data >> 2;
+	if (store && address == ADDR_SIG_BEGIN) begin
+		$display("sig_begin: %x", store_data);
+		sig_begin <= store_data >> 2;
+	end
+	if (store && address == ADDR_SIG_END) begin
+		$display("sig_end: %x", store_data);
+		sig_end <= (store_data >> 2) - 1;
+	end
 end
 `endif
 
