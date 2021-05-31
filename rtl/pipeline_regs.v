@@ -33,16 +33,16 @@ module id_ex #(
     input [1:0] p_ctrl,
     input [4:0] rd_in, rs1_fw_in, rs2_fw_in,
     input [XLEN - 1:0] pc_in, rs1_in, rs2_in, imm_in,
-    input [14:0] ctrl_in,
+    input [17:0] ctrl_in,
     output [4:0] rd_out, rs1_fw_out, rs2_fw_out,
     output [XLEN - 1:0] pc_out, rs1_out, rs2_out, imm_out,
-    output [14:0] ctrl_out
+    output [17:0] ctrl_out
 );
 generate if (BYPASS) begin
     assign {rd_out, rs1_fw_out, rs2_fw_out, pc_out, rs1_out, rs2_out, imm_out, ctrl_out} = {rd_in, rs1_fw_in, rs2_fw_in, pc_in, rs1_in, rs2_in, imm_in, ctrl_in};
 end else begin
     reg [4:0] rd_reg = 0, rs1_fw_reg = 0, rs2_fw_reg = 0;
-    reg [14:0] ctrl_reg = 0;
+    reg [17:0] ctrl_reg = 0;
     reg [XLEN - 1:0] pc_reg = 0, rs1_reg = 0, rs2_reg = 0, imm_reg = 0;
 
     always @(posedge clock)
@@ -61,15 +61,15 @@ module ex_mem #(
     input [1:0] p_ctrl,
     input [4:0] rd_in,
     input [XLEN - 1:0] rs2_in, alu_in,
-    input [1:0] ctrl_in,
+    input [4:0] ctrl_in,
     output [4:0] rd_out,
     output [XLEN - 1:0] rs2_out, alu_out,
-    output [1:0] ctrl_out
+    output [4:0] ctrl_out
 );
 generate if (BYPASS) begin
     assign {rd_out, rs2_out, alu_out, ctrl_out} = {rd_in, rs2_in, alu_in, ctrl_in};
 end else begin
-    reg [1:0] ctrl_reg = 0;
+    reg [4:0] ctrl_reg = 0;
     reg [4:0] rd_reg = 0;
     reg [XLEN - 1:0] rs2_reg = 0, alu_reg = 0;
 
@@ -89,22 +89,24 @@ module mem_wb #(
     input [1:0] p_ctrl,
     input [4:0] rd_in,
     input [XLEN - 1:0] alu_in,
+    input [XLEN - 1:0] mem_in,
     input [0:0] ctrl_in,
     output [4:0] rd_out,
     output [XLEN - 1:0] alu_out,
+    output [XLEN - 1:0] mem_out,
     output [0:0] ctrl_out
 );
 generate if (BYPASS) begin
-    assign {rd_out, alu_out, ctrl_out} = {rd_in, alu_in, ctrl_in};
+    assign {rd_out, alu_out, mem_out, ctrl_out} = {rd_in, alu_in, mem_in, ctrl_in};
 end else begin
     reg [0:0] ctrl_reg = 0;
     reg [4:0] rd_reg = 0;
-    reg [XLEN - 1:0] alu_reg = 0;
+    reg [XLEN - 1:0] alu_reg, mem_reg = 0;
 
     always @(posedge clock)
         if (~p_ctrl[0])
-            {rd_reg, alu_reg, ctrl_reg} <= p_ctrl[1] ? 0 : {rd_in, alu_in, ctrl_in};
+            {rd_reg, alu_reg, mem_reg, ctrl_reg} <= p_ctrl[1] ? 0 : {rd_in, alu_in, mem_in, ctrl_in};
 
-    assign {rd_out, alu_out, ctrl_out} = {rd_reg, alu_reg, ctrl_reg};
+    assign {rd_out, alu_out, mem_out, ctrl_out} = {rd_reg, alu_reg, mem_reg, ctrl_reg};
 end endgenerate
 endmodule

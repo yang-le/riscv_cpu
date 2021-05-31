@@ -13,7 +13,8 @@ module regs #(
 );
     generic_ram_dp #(
         .WIDTH(WIDTH),
-        .DEPTH(NUM)
+        .DEPTH(NUM),
+        .READ_OLD(0)
     ) mem_inst (
         .clock(clock),
         .write_en(|addr_w),

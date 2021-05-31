@@ -3,7 +3,7 @@ module generic_ram #(
 	parameter WIDTH = 8,
 	parameter DEPTH = 32,
     parameter DATAFILE = "",
-    parameter READ_OLD = 0
+    parameter READ_OLD = 1
 )(
 	input clock,
 	input write_en,
@@ -41,7 +41,7 @@ module generic_ram_dp #(
 	parameter WIDTH = 8,
 	parameter DEPTH = 32,
     parameter DATAFILE = "",
-    parameter READ_OLD = 0
+    parameter READ_OLD = 1
 )(
 	input clock,
 	input write_en,

@@ -47,6 +47,7 @@ wire ex_csr, ex_csri, ex_csrsc;						// use by csr
 
 // control MEM
 wire s_store, ex_store;
+wire [2:0] ex_funct3, mem_funct3;
 
 // control WB
 wire s_load, ex_load, wb_load;
@@ -129,7 +130,7 @@ id_ex # (
 	.rs1_in(id_rs1),
 	.rs2_in(id_rs2),
 	.imm_in(id_imm),
-	.ctrl_in({id_alu_op, s_pc, s_imm, s_jalr, s_branch, s_branch_zero, s_csr, s_csri, s_csrsc, s_jump, s_store, s_load}),
+	.ctrl_in({id_alu_op, s_pc, s_imm, s_jalr, s_branch, s_branch_zero, s_csr, s_csri, s_csrsc, s_jump, s_store, s_load, funct3}),
 	.rd_out(ex_rd),
 	.rs1_fw_out(ex_rs1_fw),
 	.rs2_fw_out(ex_rs2_fw),
@@ -137,12 +138,13 @@ id_ex # (
 	.rs1_out(ex_rs1),
 	.rs2_out(ex_rs2),	
 	.imm_out(ex_imm),
-	.ctrl_out({ex_alu_op, ex_s_pc, ex_s_imm, ex_jalr, ex_branch, ex_branch_zero, ex_csr, ex_csri, ex_csrsc, ex_jump, ex_store, ex_load})
+	.ctrl_out({ex_alu_op, ex_s_pc, ex_s_imm, ex_jalr, ex_branch, ex_branch_zero, ex_csr, ex_csri, ex_csrsc, ex_jump, ex_store, ex_load, ex_funct3})
 );
 
 // stage EX
 wire [XLEN - 1:0] f_rs1, f_rs2;
-wire [XLEN - 1:0] wb_rd_reg = wb_load ? load_data : wb_alu;
+wire [XLEN - 1:0] wb_data;
+wire [XLEN - 1:0] wb_rd_reg = wb_load ? wb_data : wb_alu;
 forward forward_inst (
     .mem_rd(mem_rd),
     .wb_rd(wb_rd),
@@ -200,16 +202,31 @@ ex_mem # (
 	.rd_in(ex_rd),
 	.rs2_in(f_rs2),
 	.alu_in(ex_csr ? csr_o : ex_jump ? next_pc : alu_o),
-	.ctrl_in({ex_store, ex_load}),
+	.ctrl_in({ex_store, ex_load, ex_funct3}),
 	.rd_out(mem_rd),
 	.rs2_out(mem_rs2),
 	.alu_out(mem_alu),
-	.ctrl_out({mem_store, mem_load})
+	.ctrl_out({mem_store, mem_load, mem_funct3})
 );
 
 // stage MEM
-assign store_data = mem_rs2;
 assign address = mem_alu;
+
+wire [XLEN - 1:0] mem_data;
+lu lu_inst(
+	.addr(address),
+    .funct3(mem_funct3),
+    .data_in(load_data),
+    .data_out(mem_data)
+);
+
+su su_inst(
+	.addr(address),
+    .funct3(mem_funct3),
+	.data_l(load_data),
+    .data_in(mem_rs2),
+    .data_out(store_data)
+);
 
 mem_wb #(
 	.BYPASS(0)
@@ -218,9 +235,11 @@ mem_wb #(
 	.p_ctrl(mem_wb_ctrl),
 	.rd_in(mem_rd),
 	.alu_in(mem_alu),
+	.mem_in(mem_data),
 	.ctrl_in({mem_load}),
 	.rd_out(wb_rd),
 	.alu_out(wb_alu),
+	.mem_out(wb_data),
 	.ctrl_out({wb_load})
 );
 
