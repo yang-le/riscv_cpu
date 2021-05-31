@@ -6,17 +6,17 @@ module inst_type (
 );
     always @(*) case (opcode)
         `LUI,
-        `AUIPC:     itype <= `TYPE_U;
-        `JAL:       itype <= `TYPE_J;
-        `BRANCH:    itype <= `TYPE_B;
+        `AUIPC:     itype = `TYPE_U;
+        `JAL:       itype = `TYPE_J;
+        `BRANCH:    itype = `TYPE_B;
         `LOAD,
         `OP_IMM,
         `JALR,
         `MISC_MEM,
-        `SYSTEM:    itype <= `TYPE_I;
-        `STORE:     itype <= `TYPE_S;
-        `OP:        itype <= `TYPE_R;
-        default:    itype <= 0;
+        `SYSTEM:    itype = `TYPE_I;
+        `STORE:     itype = `TYPE_S;
+        `OP:        itype = `TYPE_R;
+        default:    itype = 0;
 	endcase
 endmodule
 
@@ -28,12 +28,12 @@ module imm_gen #(
     output reg [XLEN - 1:0] imm
 );
     always @(*) case (itype)
-        `TYPE_I: imm <= {{21{inst[31]}}, inst[30:20]};
-        `TYPE_S: imm <= {{21{inst[31]}}, inst[30:25], inst[11:7]};
-        `TYPE_B: imm <= {{20{inst[31]}}, inst[7], inst[30:25], inst[11:8], 1'b0};
-        `TYPE_U: imm <= {inst[31:12], 12'b0};
-        `TYPE_J: imm <= {{12{inst[31]}}, inst[19:12], inst[20], inst[30:21], 1'b0};
-        default: imm <= 0;
+        `TYPE_I: imm = {{21{inst[31]}}, inst[30:20]};
+        `TYPE_S: imm = {{21{inst[31]}}, inst[30:25], inst[11:7]};
+        `TYPE_B: imm = {{20{inst[31]}}, inst[7], inst[30:25], inst[11:8], 1'b0};
+        `TYPE_U: imm = {inst[31:12], 12'b0};
+        `TYPE_J: imm = {{12{inst[31]}}, inst[19:12], inst[20], inst[30:21], 1'b0};
+        default: imm = 0;
     endcase
 endmodule
 
@@ -100,51 +100,51 @@ module decoder #(
     );
 
     always @(*) case (opcode)
-        `LUI:       alu_op <= `ALU_ADD;
+        `LUI:       alu_op = `ALU_ADD;
         `OP_IMM: case (funct3)
-            `ADDI:	alu_op <= `ALU_ADD;
-            `SLTI: 	alu_op <= `ALU_CMP;
-            `SLTIU:	alu_op <= `ALU_UCMP;
-            `ANDI: 	alu_op <= `ALU_AND;
-            `ORI:	alu_op <= `ALU_OR;
-            `XORI:	alu_op <= `ALU_XOR;
-            `SLLI:	alu_op <= funct7 == `FUNC7_SLLI ? `ALU_SLL : 0;
-            `SRLI:	alu_op <= funct7 == `FUNC7_SRLI ? `ALU_SRL : 
+            `ADDI:	alu_op = `ALU_ADD;
+            `SLTI: 	alu_op = `ALU_CMP;
+            `SLTIU:	alu_op = `ALU_UCMP;
+            `ANDI: 	alu_op = `ALU_AND;
+            `ORI:	alu_op = `ALU_OR;
+            `XORI:	alu_op = `ALU_XOR;
+            `SLLI:	alu_op = funct7 == `FUNC7_SLLI ? `ALU_SLL : 0;
+            `SRLI:	alu_op = funct7 == `FUNC7_SRLI ? `ALU_SRL : 
                                 funct7 == `FUNC7_SRAI ? `ALU_SRA : 0;
-            default:alu_op <= 0;
+            default:alu_op = 0;
         endcase
         `OP: case (funct3)
-            `ADD:	alu_op <= funct7 == `FUNC7_ADD ? `ALU_ADD :
+            `ADD:	alu_op = funct7 == `FUNC7_ADD ? `ALU_ADD :
                                 funct7 == `FUNC7_SUB ? `ALU_SUB : 0;
-            `SLT:	alu_op <= funct7 == `FUNC7_SLT ? `ALU_CMP : 0;
-            `SLTU:	alu_op <= funct7 == `FUNC7_SLTU ? `ALU_UCMP : 0;
-            `AND:	alu_op <= funct7 == `FUNC7_AND ? `ALU_AND : 0;
-            `OR:	alu_op <= funct7 == `FUNC7_OR ? `ALU_OR : 0;
-            `XOR:	alu_op <= funct7 == `FUNC7_XOR ? `ALU_XOR : 0;
-            `SLL:	alu_op <= funct7 == `FUNC7_SLL ? `ALU_SLL : 0;
-            `SRL:	alu_op <= funct7 == `FUNC7_SRL ? `ALU_SRL :
+            `SLT:	alu_op = funct7 == `FUNC7_SLT ? `ALU_CMP : 0;
+            `SLTU:	alu_op = funct7 == `FUNC7_SLTU ? `ALU_UCMP : 0;
+            `AND:	alu_op = funct7 == `FUNC7_AND ? `ALU_AND : 0;
+            `OR:	alu_op = funct7 == `FUNC7_OR ? `ALU_OR : 0;
+            `XOR:	alu_op = funct7 == `FUNC7_XOR ? `ALU_XOR : 0;
+            `SLL:	alu_op = funct7 == `FUNC7_SLL ? `ALU_SLL : 0;
+            `SRL:	alu_op = funct7 == `FUNC7_SRL ? `ALU_SRL :
                                 funct7 == `FUNC7_SRA ? `ALU_SRA : 0;
-            default:alu_op <= 0;
+            default:alu_op = 0;
         endcase
         `BRANCH: case (funct3)
             `BEQ,
-            `BNE:   alu_op <= `ALU_SUB;
+            `BNE:   alu_op = `ALU_SUB;
             `BLT,
-            `BGE:   alu_op <= `ALU_CMP;
+            `BGE:   alu_op = `ALU_CMP;
             `BLTU,
-            `BGEU:  alu_op <= `ALU_UCMP;
-            default:alu_op <= 0;
+            `BGEU:  alu_op = `ALU_UCMP;
+            default:alu_op = 0;
         endcase
         `SYSTEM: case (funct3)
             `CSRRW,
             `CSRRWI,
             `CSRRS,
-            `CSRRSI:alu_op <= `ALU_OR;
+            `CSRRSI:alu_op = `ALU_OR;
             `CSRRC,
-            `CSRRCI:alu_op <= `ALU_AND;
-            default:alu_op <= 0;
+            `CSRRCI:alu_op = `ALU_AND;
+            default:alu_op = 0;
         endcase
-        default:    alu_op <= (s_load || s_store || s_pc || s_jalr) ? `ALU_ADD : 0;
+        default:    alu_op = (s_load || s_store || s_pc || s_jalr) ? `ALU_ADD : 0;
     endcase
 `ifdef DEBUG
     always @(posedge clock) case (opcode)
