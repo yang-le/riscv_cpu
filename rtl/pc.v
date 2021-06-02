@@ -39,5 +39,5 @@ module addr_gen #(
 );
     assign branch_take = s_branch && (s_branch_zero ~^ alu_z);
     assign npc = s_jump ? (alu_o & ~s_jalr) : next_pc;
-    assign next_pc = (branch_take ? ex_pc : pc) + (branch_take ? imm : 4);
+    assign next_pc = (branch_take || s_jump ? ex_pc : pc) + (branch_take ? imm : 4);
 endmodule
