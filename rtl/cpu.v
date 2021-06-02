@@ -25,7 +25,7 @@ wire [XLEN - 1:0] id_inst;							// use by decode
 
 // ID_EX		
 wire [4:0] rd, ex_rd, mem_rd, wb_rd;				// use by stage WB
-wire [4:0] rs1, rs2;								// use by regs
+wire [4:0] rs1, rs2;								// use by gpr
 wire [XLEN - 1:0] id_rs1, ex_rs1, id_rs2, ex_rs2;	// use by forward
 wire [XLEN - 1:0] id_imm, ex_imm;					// use by alu
 wire [4:0] ex_rs1_fw, ex_rs2_fw;					// use by alu for csr, also used by forward
@@ -35,7 +35,7 @@ wire [XLEN - 1:0] mem_rs2;							// store data
 wire [XLEN - 1:0] mem_alu;							// store/load address
 
 // MEM_WB
-wire [XLEN - 1:0] wb_alu;							// write back to regs
+wire [XLEN - 1:0] wb_alu;							// write back to gpr
 
 // control EX	
 wire [3:0] id_alu_op, ex_alu_op;					// use by alu
@@ -56,7 +56,7 @@ wire s_load, ex_load, wb_load;
 wire [1:0] if_id_ctrl, id_ex_ctrl, ex_mem_ctrl, mem_wb_ctrl; 
 
 // stage IF
-wire s_npc, pc_pause;
+wire pc_pause;
 wire [XLEN - 1:0] npc;
 pc pc_inst(
 	.clock(clock),
@@ -244,7 +244,7 @@ mem_wb #(
 );
 
 // stage WB
-regs regs_inst (
+gpr gpr_inst (
 	.clock(clock),
 	.addr_w(wb_rd),
 	.addr_r1(rs1),

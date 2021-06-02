@@ -1,5 +1,5 @@
 
-module regs #(
+module gpr #(
 	parameter WIDTH = 32,
 	parameter NUM = 32
 )(
