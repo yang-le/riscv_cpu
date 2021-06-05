@@ -3,7 +3,7 @@
 module alu #(
 	parameter XLEN = 32
 )(
-	input [3:0] opcode,
+	input [4:0] opcode,
 	input signed [XLEN - 1:0] rs1,
 	input signed [XLEN - 1:0] rs2,
 	output reg [XLEN - 1:0] rd,

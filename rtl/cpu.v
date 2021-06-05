@@ -1,7 +1,9 @@
 `include "defines.vh"
 
 module cpu #(
-	parameter XLEN = 32
+	parameter XLEN = 32,
+	parameter ENABLE_MUL = 0,
+	parameter ENABLE_DIV = 0
 )(
 	input clock,
 	input reset,
@@ -38,7 +40,7 @@ wire [XLEN - 1:0] mem_alu;							// store/load address
 wire [XLEN - 1:0] wb_alu;							// write back to gpr
 
 // control EX	
-wire [3:0] id_alu_op, ex_alu_op;					// use by alu
+wire [4:0] id_alu_op, ex_alu_op;					// use by alu
 wire s_pc, ex_s_pc, s_imm, ex_s_imm;				// use by alu
 wire s_jalr, s_jump, s_branch, s_branch_zero;		// use by addr_gen
 wire ex_jalr, ex_jump, ex_branch, ex_branch_zero;	// use by addr_gen
@@ -160,6 +162,8 @@ forward forward_inst (
 
 wire alu_z;
 wire [XLEN - 1:0] alu_o, csr_o;
+wire [XLEN - 1:0] mul_o, div_o;
+
 alu alu_inst(
 	.rs1(ex_csri ? ex_rs1_fw : ex_s_pc? ex_pc : f_rs1),
 	.rs2(ex_csr ? csr_o : ex_s_imm ? ex_imm : f_rs2),
@@ -167,6 +171,35 @@ alu alu_inst(
 	.rd(alu_o),
 	.zero(alu_z)
 );
+
+generate if (ENABLE_MUL || ENABLE_DIV)
+mul mul_inst(
+	.rs1(f_rs1),
+	.rs2(f_rs2),
+	.opcode(ex_alu_op),
+	.rd(mul_o)	
+);
+endgenerate
+
+generate if (ENABLE_DIV)
+div div_inst(
+	.rs1(f_rs1),
+	.rs2(f_rs2),
+	.opcode(ex_alu_op),
+	.rd(div_o)	
+);
+endgenerate
+
+wire [XLEN - 1:0] ex_alu;
+generate if (ENABLE_DIV)
+assign ex_alu = ex_csr ? csr_o : ex_jump ? next_pc :
+				ex_alu_op[4:2] == 3'b100 ? mul_o : ex_alu_op[4:2] == 3'b101 ? div_o : alu_o;
+else if (ENABLE_MUL)
+assign ex_alu = ex_csr ? csr_o : ex_jump ? next_pc :
+				ex_alu_op[4:2] == 3'b100 ? mul_o : alu_o;
+else
+assign ex_alu = ex_csr ? csr_o : ex_jump ? next_pc : alu_o;
+endgenerate
 
 wire [XLEN - 1:0] next_pc;
 addr_gen addr_gen_inst (
@@ -201,7 +234,7 @@ ex_mem # (
 	.p_ctrl(ex_mem_ctrl),
 	.rd_in(ex_rd),
 	.rs2_in(f_rs2),
-	.alu_in(ex_csr ? csr_o : ex_jump ? next_pc : alu_o),
+	.alu_in(ex_alu),
 	.ctrl_in({ex_store, ex_load, ex_funct3}),
 	.rd_out(mem_rd),
 	.rs2_out(mem_rs2),

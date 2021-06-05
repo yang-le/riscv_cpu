@@ -48,7 +48,10 @@ always @(posedge clock) begin
 end
 `endif
 
-cpu cpu_inst (
+cpu #(
+	.ENABLE_MUL(1),
+	.ENABLE_DIV(1)
+)cpu_inst (
 	.clock(clock),
 	.reset(reset),
 	.load_data(load_data),

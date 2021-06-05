@@ -67,27 +67,6 @@
 `define AND			3'b111
 `define ANDI		3'b111
 
-// func7
-`define FUNC7_ADD	7'b0000000
-`define FUNC7_ADDI	7'b0000000
-`define FUNC7_SUB	7'b0100000
-`define FUNC7_SLL	7'b0000000
-`define FUNC7_SLLI	7'b0000000
-`define FUNC7_SLT	7'b0000000
-`define FUNC7_SLTI	7'b0000000
-`define FUNC7_SLTU	7'b0000000
-`define FUNC7_SLTIU	7'b0000000
-`define FUNC7_XOR	7'b0000000
-`define FUNC7_XORI	7'b0000000
-`define FUNC7_SRL	7'b0000000
-`define FUNC7_SRLI	7'b0000000
-`define FUNC7_SRA	7'b0100000
-`define FUNC7_SRAI	7'b0100000
-`define FUNC7_OR	7'b0000000
-`define FUNC7_ORI	7'b0000000
-`define FUNC7_AND	7'b0000000
-`define FUNC7_ANDI	7'b0000000
-
 // fence
 `define FENCE		3'b000
 `define TSO         4'b1000
@@ -104,6 +83,16 @@
 `define IMM_ECALL   0
 `define IMM_EBREAK  1
 
+// muldiv
+`define MUL         3'b000
+`define MULH        3'b001
+`define MULHSU      3'b010
+`define MULHU       3'b011
+`define DIV         3'b100
+`define DIVU        3'b101
+`define REM         3'b110
+`define REMU        3'b111
+
 // inst type
 `define TYPE_R      1
 `define TYPE_I      2
@@ -113,16 +102,26 @@
 `define TYPE_J      6
 
 // alu
-`define ALU_ADD     1
-`define ALU_SUB     2
-`define ALU_CMP     3
-`define ALU_UCMP    4
-`define ALU_AND     5
-`define ALU_OR      6
-`define ALU_XOR     7
-`define ALU_SLL     8
-`define ALU_SRL     9
-`define ALU_SRA     10
+`define ALU_ADD     5'b00001
+`define ALU_SUB     5'b00010
+`define ALU_CMP     5'b00011
+`define ALU_UCMP    5'b00100
+`define ALU_AND     5'b00101
+`define ALU_OR      5'b00110
+`define ALU_XOR     5'b00111
+`define ALU_SLL     5'b01000
+`define ALU_SRL     5'b01001
+`define ALU_SRA     5'b01010
+
+`define ALU_MUL     5'b10000
+`define ALU_MULH    5'b10001
+`define ALU_MULHSU  5'b10010
+`define ALU_MULHU   5'b10011
+
+`define ALU_DIV     5'b10100
+`define ALU_DIVU    5'b10101
+`define ALU_REM     5'b10110
+`define ALU_REMU    5'b10111
 
 // other
 `define DEBUG

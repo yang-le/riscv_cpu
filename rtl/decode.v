@@ -52,7 +52,7 @@ module decoder #(
     output [4:0] rs2,
     output [6:0] funct7,
     output [XLEN - 1:0] imm,
-    output reg [3:0] alu_op,
+    output reg [4:0] alu_op,
     output s_pc,
     output s_imm,
     output s_jalr,
@@ -108,22 +108,38 @@ module decoder #(
             `ANDI: 	alu_op = `ALU_AND;
             `ORI:	alu_op = `ALU_OR;
             `XORI:	alu_op = `ALU_XOR;
-            `SLLI:	alu_op = funct7 == `FUNC7_SLLI ? `ALU_SLL : 0;
-            `SRLI:	alu_op = funct7 == `FUNC7_SRLI ? `ALU_SRL : 
-                                funct7 == `FUNC7_SRAI ? `ALU_SRA : 0;
+            `SLLI:	alu_op = imm[11:5] == 7'b0000000 ? `ALU_SLL : 0;
+            `SRLI:	alu_op = imm[11:5] == 7'b0000000 ? `ALU_SRL : imm[11:5] == 7'b0100000 ? `ALU_SRA : 0;
             default:alu_op = 0;
         endcase
-        `OP: case (funct3)
-            `ADD:	alu_op = funct7 == `FUNC7_ADD ? `ALU_ADD :
-                                funct7 == `FUNC7_SUB ? `ALU_SUB : 0;
-            `SLT:	alu_op = funct7 == `FUNC7_SLT ? `ALU_CMP : 0;
-            `SLTU:	alu_op = funct7 == `FUNC7_SLTU ? `ALU_UCMP : 0;
-            `AND:	alu_op = funct7 == `FUNC7_AND ? `ALU_AND : 0;
-            `OR:	alu_op = funct7 == `FUNC7_OR ? `ALU_OR : 0;
-            `XOR:	alu_op = funct7 == `FUNC7_XOR ? `ALU_XOR : 0;
-            `SLL:	alu_op = funct7 == `FUNC7_SLL ? `ALU_SLL : 0;
-            `SRL:	alu_op = funct7 == `FUNC7_SRL ? `ALU_SRL :
-                                funct7 == `FUNC7_SRA ? `ALU_SRA : 0;
+        `OP: case (funct7)
+            7'b0000000: case (funct3)
+                `ADD:	alu_op = `ALU_ADD;
+                `SLT:	alu_op = `ALU_CMP;
+                `SLTU:	alu_op = `ALU_UCMP;
+                `AND:	alu_op = `ALU_AND;
+                `OR:	alu_op = `ALU_OR;
+                `XOR:	alu_op = `ALU_XOR;
+                `SLL:	alu_op = `ALU_SLL;
+                `SRL:	alu_op = `ALU_SRL;
+                default:alu_op = 0;
+            endcase
+            7'b0100000: case (funct3)
+                `SUB:   alu_op = `ALU_SUB;
+                `SRA:   alu_op = `ALU_SRA;
+                default:alu_op = 0;
+            endcase
+            7'b0000001: case (funct3)
+                `MUL:   alu_op = `ALU_MUL;
+                `MULH:  alu_op = `ALU_MULH;
+                `MULHSU:alu_op = `ALU_MULHSU;
+                `MULHU: alu_op = `ALU_MULHU;
+                `DIV:   alu_op = `ALU_DIV;
+                `DIVU:  alu_op = `ALU_DIVU;
+                `REM:   alu_op = `ALU_REM;
+                `REMU:  alu_op = `ALU_REMU;
+                default:alu_op = 0;
+            endcase
             default:alu_op = 0;
         endcase
         `BRANCH: case (funct3)
@@ -156,23 +172,40 @@ module decoder #(
             `ANDI: 	$display("decode: %x: ANDI", pc);
             `ORI:	$display("decode: %x: ORI", pc);
             `XORI:	$display("decode: %x: XORI", pc);
-            `SLLI:	if (funct7 == `FUNC7_SLLI) $display("decode: %x: SLLI", pc); else $display("error: %x: SLLI but unknown funct7 %b", pc, funct7);
-            `SRLI:	if (funct7 == `FUNC7_SRLI) $display("decode: %x: SRLI", pc); else
-                        if (funct7 == `FUNC7_SRAI) $display("decode: %x: SRAI", pc); else $display("error: %x: SRLI but unknown funct7 %b", pc, funct7);
+            `SLLI:	if (imm[11:5] == 7'b0000000) $display("decode: %x: SLLI", pc); else $display("error: %x: SLLI but unknown funct7 %b", pc, funct7);
+            `SRLI:	if (imm[11:5] == 7'b0000000) $display("decode: %x: SRLI", pc); else
+                        if (imm[11:5] == 7'b0100000) $display("decode: %x: SRAI", pc); else $display("error: %x: SRLI but unknown funct7 %b", pc, funct7);
             default:$display("error: %x: OP_IMM but unknown funct3 %b", pc, funct3);
         endcase
-        `OP: case (funct3)
-            `ADD:	if (funct7 == `FUNC7_ADD) $display("decode: %x: ADD", pc); else
-                        if (funct7 == `FUNC7_SUB) $display("decode: %x: SUB", pc); else $display("error: %x: ADD but unknown funct7 %b", pc, funct7);
-            `SLT:	if (funct7 == `FUNC7_SLT) $display("decode: %x: SLT", pc); else  $display("error: %x: SLT but unknown funct7 %b", pc, funct7);
-            `SLTU:	if (funct7 == `FUNC7_SLTU) $display("decode: %x: SLTU", pc); else  $display("error: %x: SLTU but unknown funct7 %b", pc, funct7);
-            `AND:	if (funct7 == `FUNC7_AND) $display("decode: %x: AND", pc); else  $display("error: %x: AND but unknown funct7 %b", pc, funct7);
-            `OR:	if (funct7 == `FUNC7_OR) $display("decode: %x: OR", pc); else  $display("error: %x: OR but unknown funct7 %b", pc, funct7);
-            `XOR:	if (funct7 == `FUNC7_XOR) $display("decode: %x: XOR", pc); else  $display("error: %x: XOR but unknown funct7 %b", pc, funct7);
-            `SLL:	if (funct7 == `FUNC7_SLL) $display("decode: %x: SLL", pc); else  $display("error: %x: SLL but unknown funct7 %b", pc, funct7);
-            `SRL:	if (funct7 == `FUNC7_SRL) $display("decode: %x: SRL", pc); else
-                        if (funct7 == `FUNC7_SRA) $display("decode: %x: SRA", pc); else  $display("error: %x: SRL but unknown funct7 %b", pc, funct7);
-            default:$display("error: %x: OP but unknown funct3 %b", pc, funct3);
+        `OP: case (funct7)
+            7'b0000000: case (funct3)
+                `ADD:	$display("decode: %x: ADD", pc);
+                `SLT:	$display("decode: %x: SLT", pc);
+                `SLTU:	$display("decode: %x: SLTU", pc);
+                `AND:	$display("decode: %x: AND", pc);
+                `OR:	$display("decode: %x: OR", pc);
+                `XOR:	$display("decode: %x: XOR", pc);
+                `SLL:	$display("decode: %x: SLL", pc);
+                `SRL:	$display("decode: %x: SRL", pc);
+                default:$display("error: %x: OP funct7=0000000, but unknown funct3 %b", pc, funct3);
+            endcase
+            7'b0100000: case (funct3)
+                `SUB:   $display("decode: %x: SUB", pc);
+                `SRA:   $display("decode: %x: SRA", pc);
+                default:$display("error: %x: OP funct7=0100000, but unknown funct3 %b", pc, funct3);
+            endcase
+            7'b0000001: case (funct3)
+                `MUL:   $display("decode: %x: MUL", pc);
+                `MULH:  $display("decode: %x: MULH", pc);
+                `MULHSU:$display("decode: %x: MULHSU", pc);
+                `MULHU: $display("decode: %x: MULHU", pc);
+                `DIV:   $display("decode: %x: DIV", pc);
+                `DIVU:  $display("decode: %x: DIVU", pc);
+                `REM:   $display("decode: %x: REM", pc);
+                `REMU:  $display("decode: %x: REMU", pc);
+                default:$display("error: %x: OP funct7=0000001, but unknown funct3 %b", pc, funct3);
+            endcase
+            default:$display("error: %x: OP but unknown funct7 %b", pc, funct7);
         endcase
         `BRANCH: case (funct3)
             `BEQ:   $display("decode: %x: BEQ", pc);
