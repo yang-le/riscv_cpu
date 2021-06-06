@@ -55,7 +55,8 @@ wire [2:0] ex_funct3, mem_funct3;
 wire s_load, ex_load, wb_load;
 
 // control pipe
-wire [1:0] if_id_ctrl, id_ex_ctrl, ex_mem_ctrl, mem_wb_ctrl; 
+wire if_id_pause, id_ex_pause, ex_mem_pause, mem_wb_pause; 
+wire if_id_bubble, id_ex_bubble, ex_mem_bubble, mem_wb_bubble; 
 
 // stage IF
 wire pc_pause;
@@ -72,7 +73,8 @@ if_id # (
 	.BYPASS(0)
 ) if_id_inst (
 	.clock(clock),
-	.p_ctrl(if_id_ctrl),
+	.pause(if_id_pause),
+	.bubble(if_id_bubble),
 	.pc_in(pc),
 	.inst_in(inst),
 	.pc_out(id_pc),
@@ -89,7 +91,8 @@ hazard hazard_inst(
     .rs1(rs1),
     .rs2(rs2),
     .pc_pause(pc_pause),
-	.pipe_ctrl({if_id_ctrl, id_ex_ctrl, ex_mem_ctrl, mem_wb_ctrl})
+	.pipe_pause({if_id_pause, id_ex_pause, ex_mem_pause, mem_wb_pause}),
+	.pipe_bubble({if_id_bubble, id_ex_bubble, ex_mem_bubble, mem_wb_bubble})
 );
 
 decoder decoder_inst (
@@ -124,7 +127,8 @@ id_ex # (
 	.BYPASS(0)
 ) id_ex_inst (
 	.clock(clock),
-	.p_ctrl(id_ex_ctrl),
+	.pause(id_ex_pause),
+	.bubble(id_ex_bubble),
 	.rd_in(rd),
 	.rs1_fw_in(rs1),
 	.rs2_fw_in(rs2),
@@ -231,7 +235,8 @@ ex_mem # (
 	.BYPASS(0)
 ) ex_mem_inst (
 	.clock(clock),
-	.p_ctrl(ex_mem_ctrl),
+	.pause(ex_mem_pause),
+	.bubble(ex_mem_bubble),
 	.rd_in(ex_rd),
 	.rs2_in(f_rs2),
 	.alu_in(ex_alu),
@@ -265,7 +270,8 @@ mem_wb #(
 	.BYPASS(0)
 ) mem_wb_inst (
 	.clock(clock),
-	.p_ctrl(mem_wb_ctrl),
+	.pause(mem_wb_pause),
+	.bubble(mem_wb_bubble),
 	.rd_in(mem_rd),
 	.alu_in(mem_alu),
 	.mem_in(mem_data),
