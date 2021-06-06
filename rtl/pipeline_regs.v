@@ -93,24 +93,19 @@ module mem_wb #(
     input bubble,
     input [4:0] rd_in,
     input [XLEN - 1:0] alu_in,
-    input [XLEN - 1:0] mem_in,
-    input [0:0] ctrl_in,
     output [4:0] rd_out,
-    output [XLEN - 1:0] alu_out,
-    output [XLEN - 1:0] mem_out,
-    output [0:0] ctrl_out
+    output [XLEN - 1:0] alu_out
 );
 generate if (BYPASS) begin
-    assign {rd_out, alu_out, mem_out, ctrl_out} = {rd_in, alu_in, mem_in, ctrl_in};
+    assign {rd_out, alu_out} = {rd_in, alu_in};
 end else begin
-    reg [0:0] ctrl_reg = 0;
     reg [4:0] rd_reg = 0;
-    reg [XLEN - 1:0] alu_reg, mem_reg = 0;
+    reg [XLEN - 1:0] alu_reg = 0;
 
     always @(posedge clock)
         if (~pause)
-            {rd_reg, alu_reg, mem_reg, ctrl_reg} <= bubble ? 0 : {rd_in, alu_in, mem_in, ctrl_in};
+            {rd_reg, alu_reg} <= bubble ? 0 : {rd_in, alu_in};
 
-    assign {rd_out, alu_out, mem_out, ctrl_out} = {rd_reg, alu_reg, mem_reg, ctrl_reg};
+    assign {rd_out, alu_out} = {rd_reg, alu_reg};
 end endgenerate
 endmodule

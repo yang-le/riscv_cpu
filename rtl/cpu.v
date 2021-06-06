@@ -48,11 +48,8 @@ wire s_csr, s_csri, s_csrsc;						// use by csr
 wire ex_csr, ex_csri, ex_csrsc;						// use by csr
 
 // control MEM
-wire s_store, ex_store;
+wire s_store, ex_store, s_load, ex_load;
 wire [2:0] ex_funct3, mem_funct3;
-
-// control WB
-wire s_load, ex_load, wb_load;
 
 // control pipe
 wire if_id_pause, id_ex_pause, ex_mem_pause, mem_wb_pause; 
@@ -161,8 +158,7 @@ id_ex #(
 
 // stage EX
 wire [XLEN - 1:0] f_rs1, f_rs2;
-wire [XLEN - 1:0] wb_data;
-wire [XLEN - 1:0] wb_rd_reg = wb_load ? wb_data : wb_alu;
+wire [XLEN - 1:0] mem_rd_reg = mem_load ? mem_data : mem_alu;
 forward #(
 	.XLEN(XLEN)
 ) forward_inst (
@@ -173,7 +169,7 @@ forward #(
     .ex_rs1(ex_rs1),
     .ex_rs2(ex_rs2),
     .mem_rd_reg(mem_alu),
-    .wb_rd_reg(wb_rd_reg),
+    .wb_rd_reg(wb_alu),
     .rs1_reg(f_rs1),
     .rs2_reg(f_rs2)
 );
@@ -300,13 +296,9 @@ mem_wb #(
 	.pause(mem_wb_pause),
 	.bubble(mem_wb_bubble),
 	.rd_in(mem_rd),
-	.alu_in(mem_alu),
-	.mem_in(mem_data),
-	.ctrl_in({mem_load}),
+	.alu_in(mem_rd_reg),
 	.rd_out(wb_rd),
-	.alu_out(wb_alu),
-	.mem_out(wb_data),
-	.ctrl_out({wb_load})
+	.alu_out(wb_alu)
 );
 
 // stage WB
@@ -317,7 +309,7 @@ gpr #(
 	.addr_w(wb_rd),
 	.addr_r1(rs1),
 	.addr_r2(rs2),
-	.data_w(wb_rd_reg),
+	.data_w(wb_alu),
 	.data_r1(id_rs1),
 	.data_r2(id_rs2)
 );
