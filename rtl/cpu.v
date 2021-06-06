@@ -23,7 +23,7 @@ wire [6:0] opcode;
 
 // IF_ID
 wire [XLEN - 1:0] id_pc, ex_pc;						// use by alu
-wire [XLEN - 1:0] id_inst;							// use by decode
+wire [31:0] if_inst,id_inst;						// use by decode
 
 // ID_EX		
 wire [4:0] rd, ex_rd, mem_rd, wb_rd;				// use by stage WB
@@ -61,7 +61,9 @@ wire if_id_bubble, id_ex_bubble, ex_mem_bubble, mem_wb_bubble;
 // stage IF
 wire pc_pause;
 wire [XLEN - 1:0] npc;
-pc pc_inst(
+pc #(
+	.XLEN(XLEN)
+) pc_inst(
 	.clock(clock),
 	.reset(reset),
 	.pause(pc_pause),
@@ -69,14 +71,22 @@ pc pc_inst(
 	.pc(pc)
 );
 
-if_id # (
-	.BYPASS(0)
+ilu #(
+	.XLEN(XLEN)
+) ilu_inst (
+    .pc(pc),
+    .inst_in(inst),
+    .inst_out(if_inst)
+);
+
+if_id #(
+	.XLEN(XLEN)
 ) if_id_inst (
 	.clock(clock),
 	.pause(if_id_pause),
 	.bubble(if_id_bubble),
 	.pc_in(pc),
-	.inst_in(inst),
+	.inst_in(if_inst),
 	.pc_out(id_pc),
 	.inst_out(id_inst)
 );
@@ -95,7 +105,9 @@ hazard hazard_inst(
 	.pipe_bubble({if_id_bubble, id_ex_bubble, ex_mem_bubble, mem_wb_bubble})
 );
 
-decoder decoder_inst (
+decoder #(
+	.XLEN(XLEN)
+) decoder_inst (
 `ifdef DEBUG
 	.clock(clock),
 	.pc(id_pc),
@@ -123,8 +135,8 @@ decoder decoder_inst (
 	.s_csrsc(s_csrsc)
 );
 
-id_ex # (
-	.BYPASS(0)
+id_ex #(
+	.XLEN(XLEN)
 ) id_ex_inst (
 	.clock(clock),
 	.pause(id_ex_pause),
@@ -151,7 +163,9 @@ id_ex # (
 wire [XLEN - 1:0] f_rs1, f_rs2;
 wire [XLEN - 1:0] wb_data;
 wire [XLEN - 1:0] wb_rd_reg = wb_load ? wb_data : wb_alu;
-forward forward_inst (
+forward #(
+	.XLEN(XLEN)
+) forward_inst (
     .mem_rd(mem_rd),
     .wb_rd(wb_rd),
     .rs1(ex_rs1_fw),
@@ -168,7 +182,9 @@ wire alu_z;
 wire [XLEN - 1:0] alu_o, csr_o;
 wire [XLEN - 1:0] mul_o, div_o;
 
-alu alu_inst(
+alu #(
+	.XLEN(XLEN)
+) alu_inst(
 	.rs1(ex_csri ? ex_rs1_fw : ex_s_pc? ex_pc : f_rs1),
 	.rs2(ex_csr ? csr_o : ex_s_imm ? ex_imm : f_rs2),
 	.opcode(ex_alu_op),
@@ -177,7 +193,9 @@ alu alu_inst(
 );
 
 generate if (ENABLE_MUL || ENABLE_DIV)
-mul mul_inst(
+mul #(
+	.XLEN(XLEN)
+) mul_inst(
 	.rs1(f_rs1),
 	.rs2(f_rs2),
 	.opcode(ex_alu_op),
@@ -186,7 +204,9 @@ mul mul_inst(
 endgenerate
 
 generate if (ENABLE_DIV)
-div div_inst(
+div #(
+	.XLEN(XLEN)
+) div_inst(
 	.rs1(f_rs1),
 	.rs2(f_rs2),
 	.opcode(ex_alu_op),
@@ -194,7 +214,7 @@ div div_inst(
 );
 endgenerate
 
-wire [XLEN - 1:0] ex_alu;
+wire [XLEN - 1:0] next_pc, ex_alu;
 generate if (ENABLE_DIV)
 assign ex_alu = ex_csr ? csr_o : ex_jump ? next_pc :
 				ex_alu_op[4:2] == 3'b100 ? mul_o : ex_alu_op[4:2] == 3'b101 ? div_o : alu_o;
@@ -205,8 +225,9 @@ else
 assign ex_alu = ex_csr ? csr_o : ex_jump ? next_pc : alu_o;
 endgenerate
 
-wire [XLEN - 1:0] next_pc;
-addr_gen addr_gen_inst (
+addr_gen #(
+	.XLEN(XLEN)
+) addr_gen_inst (
     .alu_z(alu_z),
     .s_jump(ex_jump),
     .s_jalr(ex_jalr),
@@ -221,7 +242,9 @@ addr_gen addr_gen_inst (
 	.next_pc(next_pc)
 );
 
-csr csr_inst(
+csr #(
+	.XLEN(XLEN)
+) csr_inst(
 	.clock(clock),
 	.s_csr(ex_csr),
     .s_csrsc(ex_csrsc),
@@ -231,8 +254,8 @@ csr csr_inst(
 	.data_r(csr_o)
 );
 
-ex_mem # (
-	.BYPASS(0)
+ex_mem #(
+	.XLEN(XLEN)
 ) ex_mem_inst (
 	.clock(clock),
 	.pause(ex_mem_pause),
@@ -251,14 +274,18 @@ ex_mem # (
 assign address = mem_alu;
 
 wire [XLEN - 1:0] mem_data;
-lu lu_inst(
+lu #(
+	.XLEN(XLEN)
+) lu_inst(
 	.addr(address),
     .funct3(mem_funct3),
     .data_in(load_data),
     .data_out(mem_data)
 );
 
-su su_inst(
+su #(
+	.XLEN(XLEN)
+) su_inst(
 	.addr(address),
     .funct3(mem_funct3),
 	.data_l(load_data),
@@ -267,7 +294,7 @@ su su_inst(
 );
 
 mem_wb #(
-	.BYPASS(0)
+	.XLEN(XLEN)
 ) mem_wb_inst (
 	.clock(clock),
 	.pause(mem_wb_pause),
@@ -283,7 +310,9 @@ mem_wb #(
 );
 
 // stage WB
-gpr gpr_inst (
+gpr #(
+	.XLEN(XLEN)
+) gpr_inst (
 	.clock(clock),
 	.addr_w(wb_rd),
 	.addr_r1(rs1),

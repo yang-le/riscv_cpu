@@ -27,7 +27,9 @@
   .align 4; .global end_signature; end_signature:
 
 #define RVMODEL_BOOT
+#define RVMODEL_IO_INIT
 #define RVMODEL_IO_ASSERT_GPR_EQ(ScrReg, Reg, Value)
+#define RVMODEL_IO_WRITE_STR(ScrReg, String)
 
 #define RVMODEL_SET_MSW_INT
 #define RVMODEL_CLEAR_MSW_INT

@@ -28,11 +28,11 @@ module imm_gen #(
     output reg [XLEN - 1:0] imm
 );
     always @(*) case (itype)
-        `TYPE_I: imm = {{21{inst[31]}}, inst[30:20]};
-        `TYPE_S: imm = {{21{inst[31]}}, inst[30:25], inst[11:7]};
-        `TYPE_B: imm = {{20{inst[31]}}, inst[7], inst[30:25], inst[11:8], 1'b0};
-        `TYPE_U: imm = {inst[31:12], 12'b0};
-        `TYPE_J: imm = {{12{inst[31]}}, inst[19:12], inst[20], inst[30:21], 1'b0};
+        `TYPE_I: imm = $signed(inst[31:20]);
+        `TYPE_S: imm = $signed({inst[31:25], inst[11:7]});
+        `TYPE_B: imm = $signed({inst[31], inst[7], inst[30:25], inst[11:8], 1'b0});
+        `TYPE_U: imm = $signed({inst[31:12], 12'b0});
+        `TYPE_J: imm = $signed({inst[31], inst[19:12], inst[20], inst[30:21], 1'b0});
         default: imm = 0;
     endcase
 endmodule
@@ -93,7 +93,9 @@ module decoder #(
         .itype(itype)
     );
 
-    imm_gen imm_gen_inst (
+    imm_gen #(
+        .XLEN(XLEN)
+    )imm_gen_inst (
         .inst(inst),
         .itype(itype),
         .imm(imm)

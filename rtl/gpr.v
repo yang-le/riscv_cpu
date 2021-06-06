@@ -1,18 +1,18 @@
 
 module gpr #(
-	parameter WIDTH = 32,
+	parameter XLEN = 32,
 	parameter NUM = 32
 )(
 	input clock,
 	input [$clog2(NUM) - 1:0] addr_w,
 	input [$clog2(NUM) - 1:0] addr_r1,
 	input [$clog2(NUM) - 1:0] addr_r2,
-	input [WIDTH - 1:0] data_w,
-	output [WIDTH - 1:0] data_r1,
-	output [WIDTH - 1:0] data_r2
+	input [XLEN - 1:0] data_w,
+	output [XLEN - 1:0] data_r1,
+	output [XLEN - 1:0] data_r2
 );
     generic_ram_dp #(
-        .WIDTH(WIDTH),
+        .WIDTH(XLEN),
         .DEPTH(NUM),
         .READ_OLD(0)
     ) mem_inst (
