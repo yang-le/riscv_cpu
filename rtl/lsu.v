@@ -12,9 +12,11 @@ module lu #(
 always @(*) case (funct3)
     `LB:    data_out = $signed(data_in[addr * 8 +: 8]);
     `LH:    data_out = $signed(data_in[addr * 8 +: 16]);
-    `LW:    data_out = data_in;
+    `LW:    data_out = $signed(data_in[addr * 8 +: 32]);
+    `LD:    data_out = data_in;
     `LBU:   data_out = $unsigned(data_in[addr * 8 +: 8]);
     `LHU:   data_out = $unsigned(data_in[addr * 8 +: 16]);
+    `LWU:   data_out = $unsigned(data_in[addr * 8 +: 32]);
     default:data_out = 0;
 endcase
 
@@ -46,13 +48,11 @@ module su #(
     output reg [XLEN - 1:0] data_out
 );
 
-always @(*) case (addr)
-    0:      data_out = funct3 == `SB ? {data_l[XLEN - 1:8], data_in[7:0]} :
-                        funct3 == `SH ? {data_l[XLEN - 1:16], data_in[15:0]} : data_in;
-    1:      data_out = funct3 == `SB ? {data_l[XLEN - 1:16], data_in[7:0], data_l[7:0]} :
-                        funct3 == `SH ? {data_l[XLEN - 1:24], data_in[15:0], data_l[7:0]} : {data_in[23:0], data_l[7:0]};
-    2:      data_out = funct3 == `SB ? {data_l[XLEN - 1:24], data_in[7:0], data_l[15:0]} : {data_in[15:0], data_l[15:0]};
-    3:      data_out = {data_in[7:0], data_l[23:0]};
+always @(*) case (funct3)
+    `SB:    data_out = (data_l & ~(8'hff << (addr * 8))) | ($unsigned(data_in[7:0]) << (addr * 8));
+    `SH:    data_out = (data_l & ~(16'hffff << (addr * 8))) | ($unsigned(data_in[15:0]) << (addr * 8));
+    `SW:    data_out = (data_l & ~(32'hffff_ffff << (addr * 8))) | ($unsigned(data_in[31:0]) << (addr * 8));
+    `SD:    data_out = data_in;
     default:data_out = 0;
 endcase
 

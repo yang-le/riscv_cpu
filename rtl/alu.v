@@ -18,9 +18,9 @@ always @(*) case (opcode)
 	`ALU_AND: 	rd = rs1 & rs2;
 	`ALU_OR:	rd = rs1 | rs2;
 	`ALU_XOR:	rd = rs1 ^ rs2;
-	`ALU_SLL:	rd = rs1 << rs2[4:0];
-	`ALU_SRL:	rd = rs1 >> rs2[4:0];
-	`ALU_SRA: 	rd = rs1 >>> rs2[4:0];
+	`ALU_SLL:	rd = rs1 << rs2[$clog2(XLEN) - 1:0];
+	`ALU_SRL:	rd = rs1 >> rs2[$clog2(XLEN) - 1:0];
+	`ALU_SRA: 	rd = rs1 >>> rs2[$clog2(XLEN) - 1:0];
 	default: 	rd = -1;
 endcase
 

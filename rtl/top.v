@@ -10,10 +10,9 @@ wire load, store;
 wire [XLEN - 1:0] load_data, store_data, inst, address, pc;
 
 `ifdef VERILATOR
-localparam TEST_BASE = 32'h20000000;
-localparam ADDR_HALT = TEST_BASE + 0;
-localparam ADDR_SIG_BEGIN = TEST_BASE + 4;
-localparam ADDR_SIG_END = TEST_BASE + 8;
+localparam ADDR_HALT = 32'h20000000;
+localparam ADDR_SIG_BEGIN = ADDR_HALT + XLEN / 8;
+localparam ADDR_SIG_END = ADDR_SIG_BEGIN + XLEN / 8;
 
 string data_file = 0, dump_file = 0;
 reg [XLEN - 1:0] sig_begin = 0, sig_end = 0;
@@ -26,7 +25,7 @@ initial begin
 end
 
 always @(posedge clock) begin
-	if (store && address == ADDR_HALT && store_data == 1) begin
+	if (store && address == ADDR_HALT && store_data[31:0] == 1) begin
 		if (dump_file != 0) begin
 			$display("dump: %x - %x", sig_begin, sig_end);
 			$writememh(dump_file, mem_inst.mem_inst.words, sig_begin, sig_end);
@@ -35,12 +34,12 @@ always @(posedge clock) begin
 	end
 
 	if (store && address == ADDR_SIG_BEGIN) begin
-		$display("sig_begin: %x", store_data);
-		sig_begin <= store_data / (XLEN / 8);
+		$display("sig_begin: %x", store_data[31:0]);
+		sig_begin <= store_data[31:0] / (XLEN / 8);
 	end
 	if (store && address == ADDR_SIG_END) begin
-		$display("sig_end: %x", store_data);
-		sig_end <= (store_data / (XLEN / 8)) - 1;
+		$display("sig_end: %x", store_data[31:0]);
+		sig_end <= (store_data[31:0] / (XLEN / 8)) - 1;
 	end
 end
 `endif

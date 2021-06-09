@@ -38,38 +38,57 @@
 `define LB			3'b000
 `define LH			3'b001
 `define LW			3'b010
+`define LD          3'b011
 `define LBU			3'b100
 `define LHU			3'b101
+`define LWU         3'b110
 
 // store
 `define SB			3'b000
 `define SH			3'b001
 `define SW			3'b010
+`define SD          3'b011
+
+// op-imm
+`define ADDI		3'b000
+`define SLLI		3'b001
+`define SLTI		3'b010
+`define SLTIU		3'b011
+`define XORI		3'b100
+`define SRLI		3'b101
+`define SRAI		3'b101
+`define ORI			3'b110
+`define ANDI		3'b111
+
+// op-imm-32
+`define ADDIW		3'b000
+`define SLLIW		3'b001
+`define SRLIW		3'b101
+`define SRAIW		3'b101
 
 // op
 `define ADD			3'b000
-`define ADDI		3'b000
 `define SUB			3'b000
 `define SLL			3'b001
-`define SLLI		3'b001
 `define SLT			3'b010
-`define SLTI		3'b010
 `define SLTU		3'b011
-`define SLTIU		3'b011
 `define XOR			3'b100
-`define XORI		3'b100
 `define SRL			3'b101
-`define SRLI		3'b101
 `define SRA			3'b101
-`define SRAI		3'b101
 `define OR			3'b110
-`define ORI			3'b110
 `define AND			3'b111
-`define ANDI		3'b111
+
+// op-32
+`define ADDW		3'b000
+`define SUBW		3'b000
+`define SLLW		3'b001
+`define SRLW		3'b101
+`define SRAW		3'b101
 
 // fence
 `define FENCE		3'b000
 `define TSO         4'b1000
+`define FENCE_I     3'b001
 
 // system
 `define ENV         3'b000
@@ -92,6 +111,12 @@
 `define DIVU        3'b101
 `define REM         3'b110
 `define REMU        3'b111
+
+`define MULW        3'b000
+`define DIVW        3'b100
+`define DIVUW       3'b101
+`define REMW        3'b110
+`define REMUW       3'b111
 
 // inst type
 `define TYPE_R      1

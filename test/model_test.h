@@ -1,10 +1,9 @@
 #ifndef _COMPLIANCE_MODEL_H
 #define _COMPLIANCE_MODEL_H
 
-#define TESTUTIL_BASE 0x20000000
-#define TESTUTIL_ADDR_HALT (TESTUTIL_BASE + 0x0)
-#define TESTUTIL_ADDR_BEGIN_SIGNATURE (TESTUTIL_BASE + 0x4)
-#define TESTUTIL_ADDR_END_SIGNATURE (TESTUTIL_BASE + 0x8)
+#define TESTUTIL_ADDR_HALT 0x20000000
+#define TESTUTIL_ADDR_BEGIN_SIGNATURE (TESTUTIL_ADDR_HALT + XLEN / 8)
+#define TESTUTIL_ADDR_END_SIGNATURE (TESTUTIL_ADDR_BEGIN_SIGNATURE + XLEN / 8)
 
 #define RVMODEL_HALT                                                    \
   /* tell simulation about location of begin_signature */               \

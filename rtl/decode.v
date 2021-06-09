@@ -11,11 +11,13 @@ module inst_type (
         `BRANCH:    itype = `TYPE_B;
         `LOAD,
         `OP_IMM,
+        `OP_IMM_32,
         `JALR,
         `MISC_MEM,
         `SYSTEM:    itype = `TYPE_I;
         `STORE:     itype = `TYPE_S;
-        `OP:        itype = `TYPE_R;
+        `OP,
+        `OP_32:     itype = `TYPE_R;
         default:    itype = 0;
 	endcase
 endmodule
@@ -46,11 +48,12 @@ module decoder #(
 `endif
     input [31:0] inst,
     output [6:0] opcode,
-    output [4:0] rd,
+    output [2:0] itype,
     output [2:0] funct3,
+    output [6:0] funct7,
     output [4:0] rs1,
     output [4:0] rs2,
-    output [6:0] funct7,
+    output [4:0] rd,
     output [XLEN - 1:0] imm,
     output reg [4:0] alu_op,
     output s_pc,
@@ -64,14 +67,14 @@ module decoder #(
     output s_csr,
     output s_csri,
     output s_csrsc,
-    output [2:0] itype
+    output s_32
 );
     assign opcode = inst[6:0];
-    assign rd = (itype == `TYPE_S || itype == `TYPE_B) ? 0 : inst[11:7];
     assign funct3 = inst[14:12];
+    assign funct7 = inst[31:25];
     assign rs1 = (itype == `TYPE_U || itype == `TYPE_J) ? 0 : inst[19:15];
     assign rs2 = (itype == `TYPE_I || itype == `TYPE_U || itype == `TYPE_J) ? 0 : inst[24:20];
-    assign funct7 = inst[31:25];
+    assign rd = (itype == `TYPE_S || itype == `TYPE_B) ? 0 : inst[11:7];
 
     assign s_jalr = opcode == `JALR && funct3 == `FUNC3_JALR;
     assign s_jump = opcode == `JAL || s_jalr;
@@ -81,12 +84,14 @@ module decoder #(
     assign s_branch = opcode == `BRANCH && (funct3 == `BEQ || funct3 == `BNE || funct3 == `BLT || funct3 == `BGE || funct3 == `BLTU || funct3 == `BGEU);
     assign s_branch_zero = opcode == `BRANCH && (funct3 == `BEQ || funct3 == `BGE || funct3 == `BGEU);
 
-    assign s_load = opcode == `LOAD && (funct3 == `LB || funct3 == `LH || funct3 == `LW || funct3 == `LBU || funct3 == `LHU);
-    assign s_store = opcode == `STORE && (funct3 == `SB || funct3 == `SH || funct3 == `SW);
+    assign s_load = opcode == `LOAD && (funct3 == `LB || funct3 == `LH || funct3 == `LW || funct3 == `LD || funct3 == `LBU || funct3 == `LHU || funct3 == `LWU);
+    assign s_store = opcode == `STORE && (funct3 == `SB || funct3 == `SH || funct3 == `SW || funct3 == `SD);
 
     assign s_csr = opcode == `SYSTEM && (funct3 == `CSRRW || funct3 == `CSRRS || funct3 == `CSRRC || funct3 == `CSRRWI || funct3 == `CSRRSI || funct3 == `CSRRCI);
     assign s_csrsc = opcode == `SYSTEM && (funct3 == `CSRRS || funct3 == `CSRRC || funct3 == `CSRRSI || funct3 == `CSRRCI);
     assign s_csri = opcode == `SYSTEM && (funct3 == `CSRRWI || funct3 == `CSRRSI || funct3 == `CSRRCI);
+
+    assign s_32 = opcode == `OP_32 || opcode == `OP_IMM_32;
 
     inst_type inst_type_inst (
         .opcode(opcode),
@@ -112,6 +117,12 @@ module decoder #(
             `XORI:	alu_op = `ALU_XOR;
             `SLLI:	alu_op = imm[11:5] == 7'b0000000 ? `ALU_SLL : 0;
             `SRLI:	alu_op = imm[11:5] == 7'b0000000 ? `ALU_SRL : imm[11:5] == 7'b0100000 ? `ALU_SRA : 0;
+            default:alu_op = 0;
+        endcase
+        `OP_IMM_32: case(funct3)
+            `ADDIW:	alu_op = `ALU_ADD;
+            `SLLIW: alu_op = imm[11:5] == 7'b0000000 ? `ALU_SLL : 0;
+            `SRLIW:	alu_op = imm[11:5] == 7'b0000000 ? `ALU_SRL : imm[11:5] == 7'b0100000 ? `ALU_SRA : 0;
             default:alu_op = 0;
         endcase
         `OP: case (funct7)
@@ -140,6 +151,28 @@ module decoder #(
                 `DIVU:  alu_op = `ALU_DIVU;
                 `REM:   alu_op = `ALU_REM;
                 `REMU:  alu_op = `ALU_REMU;
+                default:alu_op = 0;
+            endcase
+            default:alu_op = 0;
+        endcase
+        `OP_32: case (funct7)
+            7'b0000000: case (funct3)
+                `ADDW:	alu_op = `ALU_ADD;
+                `SLLW:	alu_op = `ALU_SLL;
+                `SRLW:	alu_op = `ALU_SRL;
+                default:alu_op = 0;
+            endcase
+            7'b0100000: case (funct3)
+                `SUBW:   alu_op = `ALU_SUB;
+                `SRAW:   alu_op = `ALU_SRA;
+                default:alu_op = 0;
+            endcase
+            7'b0000001: case (funct3)
+                `MULW:   alu_op = `ALU_MUL;
+                `DIVW:   alu_op = `ALU_DIV;
+                `DIVUW:  alu_op = `ALU_DIVU;
+                `REMW:   alu_op = `ALU_REM;
+                `REMUW:  alu_op = `ALU_REMU;
                 default:alu_op = 0;
             endcase
             default:alu_op = 0;
@@ -179,6 +212,13 @@ module decoder #(
                         if (imm[11:5] == 7'b0100000) $display("decode: %x: SRAI", pc); else $display("error: %x: SRLI but unknown funct7 %b", pc, funct7);
             default:$display("error: %x: OP_IMM but unknown funct3 %b", pc, funct3);
         endcase
+        `OP_IMM_32: case(funct3)
+            `ADDIW:	$display("decode: %x: ADDIW", pc);
+            `SLLIW: if (imm[11:5] == 7'b0000000) $display("decode: %x: SLLIW", pc); else $display("error: %x: SLLIW but unknown funct7 %b", pc, funct7);
+            `SRLIW:	if (imm[11:5] == 7'b0000000) $display("decode: %x: SRLIW", pc); else
+                        if (imm[11:5] == 7'b0100000) $display("decode: %x: SRAIW", pc); else $display("error: %x: SRLIW but unknown funct7 %b", pc, funct7);
+            default:$display("error: %x: OP_IMM_32 but unknown funct3 %b", pc, funct3);
+        endcase 
         `OP: case (funct7)
             7'b0000000: case (funct3)
                 `ADD:	$display("decode: %x: ADD", pc);
@@ -209,6 +249,28 @@ module decoder #(
             endcase
             default:$display("error: %x: OP but unknown funct7 %b", pc, funct7);
         endcase
+        `OP_32: case (funct7)
+            7'b0000000: case (funct3)
+                `ADDW:  $display("decode: %x: ADDW", pc);
+                `SLLW:	$display("decode: %x: SLLW", pc);
+                `SRLW:	$display("decode: %x: SRLW", pc);
+                default:$display("error: %x: OP_32 funct7=0000000, but unknown funct3 %b", pc, funct3);
+            endcase
+            7'b0100000: case (funct3)
+                `SUBW:  $display("decode: %x: SUBW", pc);
+                `SRAW:  $display("decode: %x: SRAW", pc);
+                default:$display("error: %x: OP_32 funct7=0100000, but unknown funct3 %b", pc, funct3);
+            endcase
+            7'b0000001: case (funct3)
+                `MULW:  $display("decode: %x: MULW", pc);
+                `DIVW:  $display("decode: %x: DIVW", pc);
+                `DIVUW: $display("decode: %x: DIVUW", pc);
+                `REMW:  $display("decode: %x: REMW", pc);
+                `REMUW: $display("decode: %x: REMUW", pc);
+                default:$display("error: %x: OP_32 funct7=0000001, but unknown funct3 %b", pc, funct3);
+            endcase
+            default:$display("error: %x: OP but unknown funct7 %b", pc, funct7);
+        endcase
         `BRANCH: case (funct3)
             `BEQ:   $display("decode: %x: BEQ", pc);
             `BNE:   $display("decode: %x: BNE", pc);
@@ -222,14 +284,17 @@ module decoder #(
             `LB:    $display("decode: %x: LB", pc);
             `LH:    $display("decode: %x: LH", pc);
             `LW:    $display("decode: %x: LW", pc);
+            `LD:    $display("decode: %x: LD", pc);
             `LBU:   $display("decode: %x: LBU", pc);
             `LHU:   $display("decode: %x: LHU", pc);
+            `LWU:   $display("decode: %x: LWU", pc);
             default:$display("error: LOAD but unknown funct3 %b", pc, funct3);
         endcase
         `STORE: case (funct3)
             `SB:    $display("decode: %x: SB", pc);
             `SH:    $display("decode: %x: SH", pc);
             `SW:    $display("decode: %x: SW", pc);
+            `SD:    $display("decode: %x: SD", pc);
             default:$display("error: %x: STORE but unknown funct3 %b", pc, funct3);
         endcase
         `AUIPC:     $display("decode: %x: AUIPC", pc);

@@ -41,7 +41,7 @@ wire [XLEN - 1:0] wb_alu;							// write back to gpr
 
 // control EX	
 wire [4:0] id_alu_op, ex_alu_op;					// use by alu
-wire s_pc, ex_s_pc, s_imm, ex_s_imm;				// use by alu
+wire s_pc, ex_s_pc, s_imm, ex_s_imm, s_32, ex_s_32; // use by alu
 wire s_jalr, s_jump, s_branch, s_branch_zero;		// use by addr_gen
 wire ex_jalr, ex_jump, ex_branch, ex_branch_zero;	// use by addr_gen
 wire s_csr, s_csri, s_csrsc;						// use by csr
@@ -111,16 +111,16 @@ decoder #(
 `endif
     .inst(id_inst),
     .opcode(opcode),
-    .rd(rd),
+	.itype(itype),
     .funct3(funct3),
+    .funct7(funct7),
     .rs1(rs1),
     .rs2(rs2),
-    .funct7(funct7),
+    .rd(rd),
     .imm(id_imm),
+    .alu_op(id_alu_op),
 	.s_pc(s_pc),
     .s_imm(s_imm),
-    .alu_op(id_alu_op),
-	.itype(itype),
 	.s_jump(s_jump),
 	.s_jalr(s_jalr),
 	.s_branch(s_branch),
@@ -129,7 +129,8 @@ decoder #(
 	.s_store(s_store),
 	.s_csr(s_csr),
 	.s_csri(s_csri),
-	.s_csrsc(s_csrsc)
+	.s_csrsc(s_csrsc),
+	.s_32(s_32)
 );
 
 id_ex #(
@@ -145,7 +146,7 @@ id_ex #(
 	.rs1_in(id_rs1),
 	.rs2_in(id_rs2),
 	.imm_in(id_imm),
-	.ctrl_in({id_alu_op, s_pc, s_imm, s_jalr, s_branch, s_branch_zero, s_csr, s_csri, s_csrsc, s_jump, s_store, s_load, funct3}),
+	.ctrl_in({id_alu_op, s_pc, s_imm, s_32, s_jalr, s_branch, s_branch_zero, s_csr, s_csri, s_csrsc, s_jump, s_store, s_load, funct3}),
 	.rd_out(ex_rd),
 	.rs1_fw_out(ex_rs1_fw),
 	.rs2_fw_out(ex_rs2_fw),
@@ -153,7 +154,7 @@ id_ex #(
 	.rs1_out(ex_rs1),
 	.rs2_out(ex_rs2),	
 	.imm_out(ex_imm),
-	.ctrl_out({ex_alu_op, ex_s_pc, ex_s_imm, ex_jalr, ex_branch, ex_branch_zero, ex_csr, ex_csri, ex_csrsc, ex_jump, ex_store, ex_load, ex_funct3})
+	.ctrl_out({ex_alu_op, ex_s_pc, ex_s_imm, ex_s_32, ex_jalr, ex_branch, ex_branch_zero, ex_csr, ex_csri, ex_csrsc, ex_jump, ex_store, ex_load, ex_funct3})
 );
 
 // stage EX
@@ -210,15 +211,19 @@ div #(
 );
 endgenerate
 
-wire [XLEN - 1:0] next_pc, ex_alu;
+wire [XLEN - 1:0] next_pc, ex_alu, alu_mux;
 generate if (ENABLE_DIV)
-assign ex_alu = ex_csr ? csr_o : ex_jump ? next_pc :
-				ex_alu_op[4:2] == 3'b100 ? mul_o : ex_alu_op[4:2] == 3'b101 ? div_o : alu_o;
+assign alu_mux = ex_alu_op[4:2] == 3'b100 ? mul_o : ex_alu_op[4:2] == 3'b101 ? div_o : alu_o;
 else if (ENABLE_MUL)
-assign ex_alu = ex_csr ? csr_o : ex_jump ? next_pc :
-				ex_alu_op[4:2] == 3'b100 ? mul_o : alu_o;
+assign alu_mux = ex_alu_op[4:2] == 3'b100 ? mul_o : alu_o;
 else
-assign ex_alu = ex_csr ? csr_o : ex_jump ? next_pc : alu_o;
+assign alu_mux = alu_o;
+endgenerate
+
+generate if (XLEN == 64)
+assign ex_alu = ex_csr ? csr_o : ex_jump ? next_pc : ex_s_32 ? $signed(alu_mux[31:0]) : alu_mux;
+else
+assign ex_alu = ex_csr ? csr_o : ex_jump ? next_pc : alu_mux;
 endgenerate
 
 addr_gen #(
