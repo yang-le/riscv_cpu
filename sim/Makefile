@@ -26,6 +26,10 @@ VERILATOR = $(VERILATOR_ROOT)/bin/verilator
 VERILATOR_COVERAGE = $(VERILATOR_ROOT)/bin/verilator_coverage
 endif
 
+ifneq ($(XLEN),)
+VERILATOR_FLAGS += -DXLEN=$(XLEN)
+endif
+
 VERILATOR_TOP = top
 
 # Generate C++ in executable form

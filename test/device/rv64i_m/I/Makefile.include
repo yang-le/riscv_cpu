@@ -24,8 +24,9 @@ COMPILE_TARGET = \
 	hexdump -v -e '/4 "%08x\n"' $(work_dir_isa)/$$*.bin > $(work_dir_isa)/$$*.txt
 
 RUN_TARGET = \
-	cat $*.txt | awk '{tmp=$$0; getline; print $$0 tmp}' > temp; \
+	awk '{tmp=$$0; getline; print $$0 tmp}' $*.txt > temp; \
 	mv temp $*.txt; \
 	$(TARGET_SIM) $(TARGET_FLAGS) \
-	+data_file=$*.txt +dump_file=$*.signature.output > $@
-
+	+data_file=$*.txt +dump_file=$*.signature.output > $@; \
+	sed 's/.\{8\}/& /g' $*.signature.output | awk '{print $$2 "\n" $$1}' > temp; \
+	mv temp $*.signature.output

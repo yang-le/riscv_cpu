@@ -26,4 +26,3 @@ COMPILE_TARGET = \
 RUN_TARGET = \
 	$(TARGET_SIM) $(TARGET_FLAGS) \
 	+data_file=$*.txt +dump_file=$*.signature.output > $@
-
