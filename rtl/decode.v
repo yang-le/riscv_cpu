@@ -115,14 +115,14 @@ module decoder #(
             `ANDI: 	alu_op = `ALU_AND;
             `ORI:	alu_op = `ALU_OR;
             `XORI:	alu_op = `ALU_XOR;
-            `SLLI:	alu_op = imm[11:5] == 7'b0000000 ? `ALU_SLL : 0;
-            `SRLI:	alu_op = imm[11:5] == 7'b0000000 ? `ALU_SRL : imm[11:5] == 7'b0100000 ? `ALU_SRA : 0;
+            `SLLI:	alu_op = imm[11:6] == 6'b000000 ? `ALU_SLL : 0;
+            `SRLI:	alu_op = imm[11:6] == 6'b000000 ? `ALU_SRL : imm[11:6] == 6'b010000 ? `ALU_SRA : 0;
             default:alu_op = 0;
         endcase
         `OP_IMM_32: case(funct3)
             `ADDIW:	alu_op = `ALU_ADD;
-            `SLLIW: alu_op = imm[11:5] == 7'b0000000 ? `ALU_SLL : 0;
-            `SRLIW:	alu_op = imm[11:5] == 7'b0000000 ? `ALU_SRL : imm[11:5] == 7'b0100000 ? `ALU_SRA : 0;
+            `SLLIW: alu_op = imm[11:6] == 6'b000000 ? `ALU_SLL : 0;
+            `SRLIW:	alu_op = imm[11:6] == 6'b000000 ? `ALU_SRL : imm[11:6] == 6'b010000 ? `ALU_SRA : 0;
             default:alu_op = 0;
         endcase
         `OP: case (funct7)
@@ -207,16 +207,16 @@ module decoder #(
             `ANDI: 	$display("decode: %x: ANDI", pc);
             `ORI:	$display("decode: %x: ORI", pc);
             `XORI:	$display("decode: %x: XORI", pc);
-            `SLLI:	if (imm[11:5] == 7'b0000000) $display("decode: %x: SLLI", pc); else $display("error: %x: SLLI but unknown funct7 %b", pc, funct7);
-            `SRLI:	if (imm[11:5] == 7'b0000000) $display("decode: %x: SRLI", pc); else
-                        if (imm[11:5] == 7'b0100000) $display("decode: %x: SRAI", pc); else $display("error: %x: SRLI but unknown funct7 %b", pc, funct7);
+            `SLLI:	if (imm[11:6] == 6'b000000) $display("decode: %x: SLLI", pc); else $display("error: %x: SLLI but unknown funct7 %b", pc, funct7);
+            `SRLI:	if (imm[11:6] == 6'b000000) $display("decode: %x: SRLI", pc); else
+                        if (imm[11:6] == 6'b010000) $display("decode: %x: SRAI", pc); else $display("error: %x: SRLI but unknown funct7 %b", pc, funct7);
             default:$display("error: %x: OP_IMM but unknown funct3 %b", pc, funct3);
         endcase
         `OP_IMM_32: case(funct3)
             `ADDIW:	$display("decode: %x: ADDIW", pc);
-            `SLLIW: if (imm[11:5] == 7'b0000000) $display("decode: %x: SLLIW", pc); else $display("error: %x: SLLIW but unknown funct7 %b", pc, funct7);
-            `SRLIW:	if (imm[11:5] == 7'b0000000) $display("decode: %x: SRLIW", pc); else
-                        if (imm[11:5] == 7'b0100000) $display("decode: %x: SRAIW", pc); else $display("error: %x: SRLIW but unknown funct7 %b", pc, funct7);
+            `SLLIW: if (imm[11:6] == 6'b000000) $display("decode: %x: SLLIW", pc); else $display("error: %x: SLLIW but unknown funct7 %b", pc, funct7);
+            `SRLIW:	if (imm[11:6] == 6'b000000) $display("decode: %x: SRLIW", pc); else
+                        if (imm[11:6] == 6'b010000) $display("decode: %x: SRAIW", pc); else $display("error: %x: SRLIW but unknown funct7 %b", pc, funct7);
             default:$display("error: %x: OP_IMM_32 but unknown funct3 %b", pc, funct3);
         endcase 
         `OP: case (funct7)

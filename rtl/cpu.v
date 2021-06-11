@@ -213,16 +213,17 @@ endgenerate
 
 wire [XLEN - 1:0] next_pc, ex_alu, alu_mux;
 generate if (ENABLE_DIV)
-assign alu_mux = ex_alu_op[4:2] == 3'b100 ? mul_o : ex_alu_op[4:2] == 3'b101 ? div_o : alu_o;
+assign alu_mux = ex_alu_op[4:2] == 3'b101 ? div_o : ex_alu_op[4:2] == 3'b100 ? mul_o : alu_o;
 else if (ENABLE_MUL)
 assign alu_mux = ex_alu_op[4:2] == 3'b100 ? mul_o : alu_o;
 else
 assign alu_mux = alu_o;
 endgenerate
 
-generate if (XLEN == 64)
-assign ex_alu = ex_csr ? csr_o : ex_jump ? next_pc : ex_s_32 ? $signed(alu_mux[31:0]) : alu_mux;
-else
+generate if (XLEN == 64) begin
+wire [XLEN - 1:0] alu_signed = $signed(alu_mux[31:0]);
+assign ex_alu = ex_csr ? csr_o : ex_jump ? next_pc : ex_s_32 ? alu_signed : alu_mux;
+end else
 assign ex_alu = ex_csr ? csr_o : ex_jump ? next_pc : alu_mux;
 endgenerate
 
