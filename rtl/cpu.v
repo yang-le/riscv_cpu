@@ -182,9 +182,10 @@ wire [XLEN - 1:0] mul_o, div_o;
 alu #(
 	.XLEN(XLEN)
 ) alu_inst(
+	.s_32(ex_s_32),
+	.opcode(ex_alu_op),
 	.rs1(ex_csri ? ex_rs1_fw : ex_s_pc? ex_pc : f_rs1),
 	.rs2(ex_csr ? csr_o : ex_s_imm ? ex_imm : f_rs2),
-	.opcode(ex_alu_op),
 	.rd(alu_o),
 	.zero(alu_z)
 );
@@ -193,9 +194,9 @@ generate if (ENABLE_MUL || ENABLE_DIV)
 mul #(
 	.XLEN(XLEN)
 ) mul_inst(
+	.opcode(ex_alu_op),
 	.rs1(f_rs1),
 	.rs2(f_rs2),
-	.opcode(ex_alu_op),
 	.rd(mul_o)	
 );
 endgenerate
@@ -204,9 +205,10 @@ generate if (ENABLE_DIV)
 div #(
 	.XLEN(XLEN)
 ) div_inst(
+	.s_32(ex_s_32),	
+	.opcode(ex_alu_op),
 	.rs1(f_rs1),
 	.rs2(f_rs2),
-	.opcode(ex_alu_op),
 	.rd(div_o)	
 );
 endgenerate

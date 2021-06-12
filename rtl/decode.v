@@ -80,7 +80,7 @@ module decoder #(
     assign s_jump = opcode == `JAL || s_jalr;
     assign s_pc = opcode == `AUIPC || opcode == `JAL;
 
-    assign s_imm = !(opcode == `OP || opcode == `BRANCH || s_csr);
+    assign s_imm = !(opcode == `OP || opcode == `OP_32 || opcode == `BRANCH || s_csr);
     assign s_branch = opcode == `BRANCH && (funct3 == `BEQ || funct3 == `BNE || funct3 == `BLT || funct3 == `BGE || funct3 == `BLTU || funct3 == `BGEU);
     assign s_branch_zero = opcode == `BRANCH && (funct3 == `BEQ || funct3 == `BGE || funct3 == `BGEU);
 
