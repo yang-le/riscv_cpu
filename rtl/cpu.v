@@ -53,7 +53,8 @@ wire [2:0] ex_funct3, mem_funct3;
 
 // control pipe
 wire if_id_pause, id_ex_pause, ex_mem_pause, mem_wb_pause; 
-wire if_id_bubble, id_ex_bubble, ex_mem_bubble, mem_wb_bubble; 
+wire if_id_bubble, id_ex_bubble, ex_mem_bubble, mem_wb_bubble;
+wire s_flush, ex_flush, mem_flush;
 
 // stage IF
 wire pc_pause;
@@ -94,6 +95,9 @@ hazard hazard_inst(
 	.ex_jump(ex_jump),
 	.branch_take(branch_take),
     .ex_load(ex_load),
+	.id_flush(s_flush),
+	.ex_flush(ex_flush),
+	.mem_flush(mem_flush),
     .ex_rd(ex_rd),
     .rs1(rs1),
     .rs2(rs2),
@@ -130,7 +134,8 @@ decoder #(
 	.s_csr(s_csr),
 	.s_csri(s_csri),
 	.s_csrsc(s_csrsc),
-	.s_32(s_32)
+	.s_32(s_32),
+	.s_flush(s_flush)
 );
 
 id_ex #(
@@ -146,7 +151,7 @@ id_ex #(
 	.rs1_in(id_rs1),
 	.rs2_in(id_rs2),
 	.imm_in(id_imm),
-	.ctrl_in({id_alu_op, s_pc, s_imm, s_32, s_jalr, s_branch, s_branch_zero, s_csr, s_csri, s_csrsc, s_jump, s_store, s_load, funct3}),
+	.ctrl_in({id_alu_op, s_pc, s_imm, s_32, s_jalr, s_branch, s_branch_zero, s_csr, s_csri, s_csrsc, s_jump, s_store, s_load, s_flush, funct3}),
 	.rd_out(ex_rd),
 	.rs1_fw_out(ex_rs1_fw),
 	.rs2_fw_out(ex_rs2_fw),
@@ -154,7 +159,7 @@ id_ex #(
 	.rs1_out(ex_rs1),
 	.rs2_out(ex_rs2),	
 	.imm_out(ex_imm),
-	.ctrl_out({ex_alu_op, ex_s_pc, ex_s_imm, ex_s_32, ex_jalr, ex_branch, ex_branch_zero, ex_csr, ex_csri, ex_csrsc, ex_jump, ex_store, ex_load, ex_funct3})
+	.ctrl_out({ex_alu_op, ex_s_pc, ex_s_imm, ex_s_32, ex_jalr, ex_branch, ex_branch_zero, ex_csr, ex_csri, ex_csrsc, ex_jump, ex_store, ex_load, ex_flush, ex_funct3})
 );
 
 // stage EX
@@ -267,11 +272,11 @@ ex_mem #(
 	.rd_in(ex_rd),
 	.rs2_in(f_rs2),
 	.alu_in(ex_alu),
-	.ctrl_in({ex_store, ex_load, ex_funct3}),
+	.ctrl_in({ex_store, ex_load, ex_flush, ex_funct3}),
 	.rd_out(mem_rd),
 	.rs2_out(mem_rs2),
 	.alu_out(mem_alu),
-	.ctrl_out({mem_store, mem_load, mem_funct3})
+	.ctrl_out({mem_store, mem_load, mem_flush, mem_funct3})
 );
 
 // stage MEM

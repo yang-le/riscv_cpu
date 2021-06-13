@@ -67,7 +67,8 @@ module decoder #(
     output s_csr,
     output s_csri,
     output s_csrsc,
-    output s_32
+    output s_32,
+    output s_flush
 );
     assign opcode = inst[6:0];
     assign funct3 = inst[14:12];
@@ -92,6 +93,7 @@ module decoder #(
     assign s_csri = opcode == `SYSTEM && (funct3 == `CSRRWI || funct3 == `CSRRSI || funct3 == `CSRRCI);
 
     assign s_32 = opcode == `OP_32 || opcode == `OP_IMM_32;
+    assign s_flush = opcode == `MISC_MEM && funct3 == `FENCE_I;
 
     inst_type inst_type_inst (
         .opcode(opcode),
@@ -306,6 +308,7 @@ module decoder #(
                 `TSO: if (inst[27:20] == 8'b00110011) $display("decode: %x: FENCE.TSO", pc); else $display("error: %x: FENCE.TSO but unknown pred %x, succ %x", pc, inst[27:24], inst[23:20]);
                 default: $display("error: %x: FENCE but unknown fm %x", pc, inst[31:28]);
             endcase
+            `FENCE_I: $display("decode: %x: FENCE_I", pc);
             default:$display("error: %x: MISC_MEM but unknown funct3 %b", pc, funct3);
         endcase
         `SYSTEM: case (funct3)
