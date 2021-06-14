@@ -66,7 +66,7 @@ module decoder #(
     output s_store,
     output s_csr,
     output s_csri,
-    output s_csrsc,
+    output s_csrw,
     output s_32,
     output s_flush
 );
@@ -89,8 +89,8 @@ module decoder #(
     assign s_store = opcode == `STORE && (funct3 == `SB || funct3 == `SH || funct3 == `SW || funct3 == `SD);
 
     assign s_csr = opcode == `SYSTEM && (funct3 == `CSRRW || funct3 == `CSRRS || funct3 == `CSRRC || funct3 == `CSRRWI || funct3 == `CSRRSI || funct3 == `CSRRCI);
-    assign s_csrsc = opcode == `SYSTEM && (funct3 == `CSRRS || funct3 == `CSRRC || funct3 == `CSRRSI || funct3 == `CSRRCI);
     assign s_csri = opcode == `SYSTEM && (funct3 == `CSRRWI || funct3 == `CSRRSI || funct3 == `CSRRCI);
+    assign s_csrw = s_csr && (funct3 == `CSRRW || funct3 == `CSRRWI || |rs1);
 
     assign s_32 = opcode == `OP_32 || opcode == `OP_IMM_32;
     assign s_flush = opcode == `MISC_MEM && funct3 == `FENCE_I;
@@ -186,15 +186,6 @@ module decoder #(
             `BGE:   alu_op = `ALU_CMP;
             `BLTU,
             `BGEU:  alu_op = `ALU_UCMP;
-            default:alu_op = 0;
-        endcase
-        `SYSTEM: case (funct3)
-            `CSRRW,
-            `CSRRWI,
-            `CSRRS,
-            `CSRRSI:alu_op = `ALU_OR;
-            `CSRRC,
-            `CSRRCI:alu_op = `ALU_AND;
             default:alu_op = 0;
         endcase
         default:    alu_op = (s_load || s_store || s_pc || s_jalr) ? `ALU_ADD : 0;

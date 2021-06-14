@@ -4,12 +4,14 @@ module csr #(
 	parameter XLEN = 32
 )(
 	input clock,
-	input s_csr,
-    input s_csrsc,
-    input [4:0] rs1,
+    input s_csr,
+    input s_csrw,
+	input [2:0] funct3,
 	input [11:0] addr,
-    input [XLEN - 1:0] data_w,
-	output [XLEN - 1:0] data_r
+    input [XLEN - 1:0] pc_in,
+    input [XLEN - 1:0] data_in,
+    output [XLEN - 1:0] pc_out,
+	output [XLEN - 1:0] data_out
 );
     // User Trap Setup
     localparam USTATUS = 12'h000;   // user status register
@@ -167,16 +169,35 @@ end endgenerate
     localparam HYPERVISOR = 2'b10;
     localparam MACHINE = 2'b11;
 
-    wire write_en = s_csr && (~s_csrsc || |rs1);
+    reg [XLEN - 1:0] words[2**12 - 1:0];
 
-    generic_ram #(
-        .WIDTH(XLEN),
-        .DEPTH(2**12)
-    ) mem_inst (
-        .clock(clock),
-        .write_en(write_en),
-        .addr(addr),
-        .data_i(data_w),
-        .data_o(data_r)
-    );
+    initial begin: init
+        integer i;
+        for (i = 0; i < 2**12; i = i + 1)
+            words[i] = 0;
+    end
+
+    reg [XLEN - 1:0] data_w;
+    always @(*) case (funct3)
+    `CSRRW,
+    `CSRRWI: data_w = data_in;
+    `CSRRS,
+    `CSRRSI: data_w = data_out | data_in;
+    `CSRRC,
+    `CSRRCI: data_w = data_out & ~data_in;
+    default: data_w = data_out;
+    endcase
+
+    always @(posedge clock) begin
+        if (s_csrw)
+            words[addr] <= data_w;
+
+        if (s_csr) case (addr)
+        MTVEC:      $display("csr: %x: %s MTVEC %x", pc_in, s_csrw ? "write" : "read", s_csrw ? data_w : data_out);
+        MSCRATCH:   $display("csr: %x: %s MSCRATCH %x", pc_in, s_csrw ? "write" : "read", s_csrw ? data_w : data_out);
+        default:    $display("error: %x: try to %s unknow address %x", pc_in, s_csrw ? "write" : "read", addr);
+        endcase
+    end
+
+    assign data_out = words[addr];
 endmodule

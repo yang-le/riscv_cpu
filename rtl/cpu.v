@@ -22,18 +22,18 @@ wire [6:0] funct7;
 wire [6:0] opcode;
 
 // IF_ID
-wire [XLEN - 1:0] id_pc, ex_pc;						// use by alu
+wire [XLEN - 1:0] id_pc, ex_pc, mem_pc;				// use by alu
 wire [31:0] if_inst,id_inst;						// use by decode
 
 // ID_EX		
 wire [4:0] rd, ex_rd, mem_rd, wb_rd;				// use by stage WB
 wire [4:0] rs1, rs2;								// use by gpr
 wire [XLEN - 1:0] id_rs1, ex_rs1, id_rs2, ex_rs2;	// use by forward
-wire [XLEN - 1:0] id_imm, ex_imm;					// use by alu
+wire [XLEN - 1:0] id_imm, ex_imm, mem_imm;			// use by alu
 wire [4:0] ex_rs1_fw, ex_rs2_fw;					// use by alu for csr, also used by forward
 
 // EX_MEM
-wire [XLEN - 1:0] mem_rs2;							// store data
+wire [XLEN - 1:0] mem_rs1, mem_rs2;					// store data
 wire [XLEN - 1:0] mem_alu;							// store/load address
 
 // MEM_WB
@@ -44,8 +44,9 @@ wire [4:0] id_alu_op, ex_alu_op;					// use by alu
 wire s_pc, ex_s_pc, s_imm, ex_s_imm, s_32, ex_s_32; // use by alu
 wire s_jalr, s_jump, s_branch, s_branch_zero;		// use by addr_gen
 wire ex_jalr, ex_jump, ex_branch, ex_branch_zero;	// use by addr_gen
-wire s_csr, s_csri, s_csrsc;						// use by csr
-wire ex_csr, ex_csri, ex_csrsc;						// use by csr
+wire s_csr, ex_csr, mem_csr;						// use by csr
+wire s_csrw, ex_csrw, mem_csrw;						// use by csr
+wire s_csri, ex_csri;
 
 // control MEM
 wire s_store, ex_store, s_load, ex_load;
@@ -133,7 +134,7 @@ decoder #(
 	.s_store(s_store),
 	.s_csr(s_csr),
 	.s_csri(s_csri),
-	.s_csrsc(s_csrsc),
+	.s_csrw(s_csrw),
 	.s_32(s_32),
 	.s_flush(s_flush)
 );
@@ -151,7 +152,7 @@ id_ex #(
 	.rs1_in(id_rs1),
 	.rs2_in(id_rs2),
 	.imm_in(id_imm),
-	.ctrl_in({id_alu_op, s_pc, s_imm, s_32, s_jalr, s_branch, s_branch_zero, s_csr, s_csri, s_csrsc, s_jump, s_store, s_load, s_flush, funct3}),
+	.ctrl_in({id_alu_op, s_pc, s_imm, s_32, s_jalr, s_branch, s_branch_zero, s_csr, s_csri, s_csrw, s_jump, s_store, s_load, s_flush, funct3}),
 	.rd_out(ex_rd),
 	.rs1_fw_out(ex_rs1_fw),
 	.rs2_fw_out(ex_rs2_fw),
@@ -159,12 +160,11 @@ id_ex #(
 	.rs1_out(ex_rs1),
 	.rs2_out(ex_rs2),	
 	.imm_out(ex_imm),
-	.ctrl_out({ex_alu_op, ex_s_pc, ex_s_imm, ex_s_32, ex_jalr, ex_branch, ex_branch_zero, ex_csr, ex_csri, ex_csrsc, ex_jump, ex_store, ex_load, ex_flush, ex_funct3})
+	.ctrl_out({ex_alu_op, ex_s_pc, ex_s_imm, ex_s_32, ex_jalr, ex_branch, ex_branch_zero, ex_csr, ex_csri, ex_csrw, ex_jump, ex_store, ex_load, ex_flush, ex_funct3})
 );
 
 // stage EX
 wire [XLEN - 1:0] f_rs1, f_rs2;
-wire [XLEN - 1:0] mem_rd_reg = mem_load ? mem_data : mem_alu;
 forward #(
 	.XLEN(XLEN)
 ) forward_inst (
@@ -189,8 +189,8 @@ alu #(
 ) alu_inst(
 	.s_32(ex_s_32),
 	.opcode(ex_alu_op),
-	.rs1(ex_csri ? ex_rs1_fw : ex_s_pc? ex_pc : f_rs1),
-	.rs2(ex_csr ? csr_o : ex_s_imm ? ex_imm : f_rs2),
+	.rs1(ex_s_pc? ex_pc : f_rs1),
+	.rs2(ex_s_imm ? ex_imm : f_rs2),
 	.rd(alu_o),
 	.zero(alu_z)
 );
@@ -229,9 +229,9 @@ endgenerate
 
 generate if (XLEN == 64) begin
 wire [XLEN - 1:0] alu_signed = $signed(alu_mux[31:0]);
-assign ex_alu = ex_csr ? csr_o : ex_jump ? next_pc : ex_s_32 ? alu_signed : alu_mux;
+assign ex_alu = ex_jump ? next_pc : ex_s_32 ? alu_signed : alu_mux;
 end else
-assign ex_alu = ex_csr ? csr_o : ex_jump ? next_pc : alu_mux;
+assign ex_alu = ex_jump ? next_pc : alu_mux;
 endgenerate
 
 addr_gen #(
@@ -251,18 +251,6 @@ addr_gen #(
 	.next_pc(next_pc)
 );
 
-csr #(
-	.XLEN(XLEN)
-) csr_inst(
-	.clock(clock),
-	.s_csr(ex_csr),
-    .s_csrsc(ex_csrsc),
-    .rs1(ex_rs1_fw),
-	.addr(ex_imm),
-	.data_w(alu_o),
-	.data_r(csr_o)
-);
-
 ex_mem #(
 	.XLEN(XLEN)
 ) ex_mem_inst (
@@ -270,13 +258,19 @@ ex_mem #(
 	.pause(ex_mem_pause),
 	.bubble(ex_mem_bubble),
 	.rd_in(ex_rd),
+	.pc_in(ex_pc),
+	.imm_in(ex_imm),
+	.rs1_in(ex_csri ? ex_rs1_fw : f_rs1),
 	.rs2_in(f_rs2),
 	.alu_in(ex_alu),
-	.ctrl_in({ex_store, ex_load, ex_flush, ex_funct3}),
+	.ctrl_in({ex_csr, ex_csrw, ex_store, ex_load, ex_flush, ex_funct3}),
 	.rd_out(mem_rd),
+	.pc_out(mem_pc),
+	.imm_out(mem_imm),
+	.rs1_out(mem_rs1),
 	.rs2_out(mem_rs2),
 	.alu_out(mem_alu),
-	.ctrl_out({mem_store, mem_load, mem_flush, mem_funct3})
+	.ctrl_out({mem_csr, mem_csrw, mem_store, mem_load, mem_flush, mem_funct3})
 );
 
 // stage MEM
@@ -302,6 +296,21 @@ su #(
     .data_out(store_data)
 );
 
+csr #(
+	.XLEN(XLEN)
+) csr_inst(
+	.clock(clock),
+	.s_csr(mem_csr),
+	.s_csrw(mem_csrw),
+	.funct3(mem_funct3),
+	.addr(mem_imm),
+	.pc_in(mem_pc),
+	.data_in(mem_rs1),
+	.pc_out(),
+	.data_out(csr_o)
+);
+
+wire [XLEN - 1:0] mem_rd_reg = mem_load ? mem_data : mem_csr ? csr_o : mem_alu;
 mem_wb #(
 	.XLEN(XLEN)
 ) mem_wb_inst (

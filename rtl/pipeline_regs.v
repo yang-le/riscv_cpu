@@ -63,24 +63,24 @@ module ex_mem #(
     input pause,
     input bubble,
     input [4:0] rd_in,
-    input [XLEN - 1:0] rs2_in, alu_in,
-    input [5:0] ctrl_in,
+    input [XLEN - 1:0] pc_in, imm_in, rs1_in, rs2_in, alu_in,
+    input [7:0] ctrl_in,
     output [4:0] rd_out,
-    output [XLEN - 1:0] rs2_out, alu_out,
-    output [5:0] ctrl_out
+    output [XLEN - 1:0] pc_out, imm_out, rs1_out, rs2_out, alu_out,
+    output [7:0] ctrl_out
 );
 generate if (BYPASS) begin
-    assign {rd_out, rs2_out, alu_out, ctrl_out} = {rd_in, rs2_in, alu_in, ctrl_in};
+    assign {rd_out, pc_out, imm_out, rs1_out, rs2_out, alu_out, ctrl_out} = {rd_in, pc_out, imm_out, rs1_in, rs2_in, alu_in, ctrl_in};
 end else begin
-    reg [5:0] ctrl_reg = 0;
+    reg [7:0] ctrl_reg = 0;
     reg [4:0] rd_reg = 0;
-    reg [XLEN - 1:0] rs2_reg = 0, alu_reg = 0;
+    reg [XLEN - 1:0] pc_reg = 0, imm_reg = 0, rs1_reg = 0, rs2_reg = 0, alu_reg = 0;
 
     always @(posedge clock)
         if (~pause)
-            {rd_reg, rs2_reg, alu_reg, ctrl_reg} <= bubble ? 0 : {rd_in, rs2_in, alu_in, ctrl_in};
+            {rd_reg, pc_reg, imm_reg, rs1_reg, rs2_reg, alu_reg, ctrl_reg} <= bubble ? 0 : {rd_in, pc_in, imm_in, rs1_in, rs2_in, alu_in, ctrl_in};
 
-    assign {rd_out, rs2_out, alu_out, ctrl_out} = {rd_reg, rs2_reg, alu_reg, ctrl_reg};
+    assign {rd_out, pc_out, imm_out, rs1_out, rs2_out, alu_out, ctrl_out} = {rd_reg, pc_reg, imm_reg, rs1_reg, rs2_reg, alu_reg, ctrl_reg};
 end endgenerate
 endmodule
 
