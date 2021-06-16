@@ -4,14 +4,21 @@ module csr #(
 	parameter XLEN = 32
 )(
 	input clock,
+    input reset,
     input s_csr,
     input s_csrw,
+    input s_ecall,
+    input s_ebreak,
+    input s_illegal,
+	input s_load,
+	input s_store,
 	input [2:0] funct3,
 	input [11:0] addr,
+    input [XLEN - 1:0] mem_addr,
     input [XLEN - 1:0] pc_in,
     input [XLEN - 1:0] data_in,
     output [XLEN - 1:0] pc_out,
-	output [XLEN - 1:0] data_out
+	output reg [XLEN - 1:0] data_out
 );
     // User Trap Setup
     localparam USTATUS = 12'h000;   // user status register
@@ -169,12 +176,38 @@ end endgenerate
     localparam HYPERVISOR = 2'b10;
     localparam MACHINE = 2'b11;
 
-    reg [XLEN - 1:0] words[2**12 - 1:0];
+    `define SIE 1
+    `define MIE 3
+    `define MPIE 7
 
-    initial begin: init
-        integer i;
-        for (i = 0; i < 2**12; i = i + 1)
-            words[i] = 0;
+    wire i_misalign, l_misalign, s_misalign;
+    misalign_detector #(
+        .XLEN(XLEN)
+    ) misalign_detector_inst (
+        .s_load(s_load),
+        .s_store(s_store),
+        .funct3(funct3),
+        .addr(mem_addr),
+        .pc(pc_in),
+        .i_misalign(i_misalign),
+        .l_misalign(l_misalign),
+        .s_misalign(s_misalign)
+    );
+
+    wire exception = s_ebreak || s_ecall || l_misalign || s_misalign || i_misalign;
+
+    assign pc_out = mtvec;
+    reg [XLEN - 1:0] mtvec, mepc, mcause, mie, mip, mtval, mscratch, mstatus;
+
+    initial begin
+        mtvec = 0;
+        mepc = 0;
+        mcause = 0;
+        mie = 0;
+        mip = 0;
+        mtval = 0;
+        mscratch = 0;
+        mstatus = 0;        
     end
 
     reg [XLEN - 1:0] data_w;
@@ -189,15 +222,93 @@ end endgenerate
     endcase
 
     always @(posedge clock) begin
-        if (s_csrw)
-            words[addr] <= data_w;
+        if (reset) begin
+            mtvec <= 0;
+            mepc <= 0;
+            mcause <= 0;
+            mie <= 0;
+            mip <= 0;
+            mtval <= 0;
+            mscratch <= 0;
+            mstatus <= 0;
+        end else if (exception) begin
+            mepc <= pc_in;
+            mstatus[`MPIE] <= mstatus[`MIE];
+            mstatus[`MIE] <= 0;
+            mcause <= s_illegal ? 2 :
+                    i_misalign ? 0 :
+                    s_ecall ? 11 :
+                    s_ebreak ? 3 :
+                    s_misalign ? 6 :
+                    l_misalign ? 4 : mcause;
+            mtval <= (s_misalign || l_misalign) ? mem_addr : 0;
+        end else if (s_csrw) case (addr)
+        MTVEC:      mtvec <= data_w;
+        MEPC:       mepc <= data_w;
+        MCAUSE:     mcause <= data_w;
+        MIE:        mie <= data_w;
+        MIP:        mip <=data_w;
+        MTVAL:      mtval <= data_w;
+        MSCRATCH:   mscratch <= data_w;
+        MSTATUS:    mstatus <= data_w;
+        endcase
 
         if (s_csr) case (addr)
         MTVEC:      $display("csr: %x: %s MTVEC %x", pc_in, s_csrw ? "write" : "read", s_csrw ? data_w : data_out);
+        MEPC:       $display("csr: %x: %s MEPC %x", pc_in, s_csrw ? "write" : "read", s_csrw ? data_w : data_out);
+        MCAUSE:     $display("csr: %x: %s MCAUSE %x", pc_in, s_csrw ? "write" : "read", s_csrw ? data_w : data_out);
+        MIE:        $display("csr: %x: %s MIE %x", pc_in, s_csrw ? "write" : "read", s_csrw ? data_w : data_out);
+        MIP:        $display("csr: %x: %s MIP %x", pc_in, s_csrw ? "write" : "read", s_csrw ? data_w : data_out);
+        MTVAL:      $display("csr: %x: %s MTVAL %x", pc_in, s_csrw ? "write" : "read", s_csrw ? data_w : data_out);
         MSCRATCH:   $display("csr: %x: %s MSCRATCH %x", pc_in, s_csrw ? "write" : "read", s_csrw ? data_w : data_out);
+        MSTATUS:    $display("csr: %x: %s MSTATUS %x", pc_in, s_csrw ? "write" : "read", s_csrw ? data_w : data_out);
         default:    $display("error: %x: try to %s unknow address %x", pc_in, s_csrw ? "write" : "read", addr);
         endcase
     end
 
-    assign data_out = words[addr];
+    always @(*) case (addr)
+    MTVEC:      data_out = mtvec;
+    MEPC:       data_out = mepc;
+    MCAUSE:     data_out = mcause;
+    MIE:        data_out = mie;
+    MIP:        data_out = mip;
+    MTVAL:      data_out = mtval;
+    MSCRATCH:   data_out = mscratch;
+    MSTATUS:    data_out = mstatus;
+    default:    data_out = 0;
+    endcase
+endmodule
+
+module misalign_detector #(
+	parameter XLEN = 32
+)(
+	input s_load,
+	input s_store,
+	input [2:0] funct3,
+    input [2:0] addr,
+    input [1:0] pc,
+    output i_misalign,
+    output l_misalign,
+    output s_misalign
+);
+    assign i_misalign = pc[1:0] != 0;
+
+    wire mis_lh = (funct3 == `LH || funct3 == `LHU) && (addr[0] != 1'b0);
+    wire mis_lw = (funct3 == `LW || funct3 == `LWU) && (addr[1:0] != 2'b00);
+generate if (XLEN == 64) begin
+    wire mis_ld = (funct3 == `LD) && (addr[2:0] != 3'b000);
+    assign l_misalign = s_load && (mis_lh || mis_lw || mis_ld);
+end else
+    assign l_misalign = s_load && (mis_lh || mis_lw);
+endgenerate
+
+    wire mis_sh = (funct3 == `SH) && (addr[0] != 1'b0);
+    wire mis_sw = (funct3 == `SW) && (addr[1:0] != 2'b00);
+generate if (XLEN == 64) begin
+    wire mis_sd = (funct3 == `SD) && (addr[2:0] != 3'b000);
+    assign s_misalign = s_store && (mis_sh || mis_sw || mis_sd);
+end else
+    assign s_misalign = s_store && (mis_sh || mis_sw);
+endgenerate
+
 endmodule

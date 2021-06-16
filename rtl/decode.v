@@ -68,7 +68,10 @@ module decoder #(
     output s_csri,
     output s_csrw,
     output s_32,
-    output s_flush
+    output s_flush,
+    output s_ecall,
+    output s_ebreak,
+    output s_illegal
 );
     assign opcode = inst[6:0];
     assign funct3 = inst[14:12];
@@ -94,6 +97,12 @@ module decoder #(
 
     assign s_32 = opcode == `OP_32 || opcode == `OP_IMM_32;
     assign s_flush = opcode == `MISC_MEM && funct3 == `FENCE_I;
+    assign s_ecall = inst == 32'h0000_0073;
+    assign s_ebreak = inst == 32'h0010_0073;
+
+    wire s_fence_tso = inst == 32'h8330_000f;
+    wire s_fence = opcode == `MISC_MEM && funct3 == `FENCE && inst[31:28] == 4'b0000;
+    assign s_illegal = alu_op == 5'b00000 && !s_flush && !s_ecall && !s_ebreak && !s_fence_tso && !s_fence;
 
     inst_type inst_type_inst (
         .opcode(opcode),
@@ -296,7 +305,7 @@ module decoder #(
         `MISC_MEM: case (funct3)
             `FENCE: case (inst[31:28])
                 4'b0000: $display("decode: %x: FENCE", pc);
-                `TSO: if (inst[27:20] == 8'b00110011) $display("decode: %x: FENCE.TSO", pc); else $display("error: %x: FENCE.TSO but unknown pred %x, succ %x", pc, inst[27:24], inst[23:20]);
+                `TSO: if (s_fence_tso) $display("decode: %x: FENCE.TSO", pc); else $display("error: %x: invalid FENCE.TSO with pred %x, succ %x, rs1 %x, rd %x", pc, inst[27:24], inst[23:20], rs1, rd);
                 default: $display("error: %x: FENCE but unknown fm %x", pc, inst[31:28]);
             endcase
             `FENCE_I: $display("decode: %x: FENCE_I", pc);

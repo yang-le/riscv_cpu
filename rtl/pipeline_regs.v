@@ -35,16 +35,16 @@ module id_ex #(
     input bubble,
     input [4:0] rd_in, rs1_fw_in, rs2_fw_in,
     input [XLEN - 1:0] pc_in, rs1_in, rs2_in, imm_in,
-    input [20:0] ctrl_in,
+    input [23:0] ctrl_in,
     output [4:0] rd_out, rs1_fw_out, rs2_fw_out,
     output [XLEN - 1:0] pc_out, rs1_out, rs2_out, imm_out,
-    output [20:0] ctrl_out
+    output [23:0] ctrl_out
 );
 generate if (BYPASS) begin
     assign {rd_out, rs1_fw_out, rs2_fw_out, pc_out, rs1_out, rs2_out, imm_out, ctrl_out} = {rd_in, rs1_fw_in, rs2_fw_in, pc_in, rs1_in, rs2_in, imm_in, ctrl_in};
 end else begin
     reg [4:0] rd_reg = 0, rs1_fw_reg = 0, rs2_fw_reg = 0;
-    reg [20:0] ctrl_reg = 0;
+    reg [23:0] ctrl_reg = 0;
     reg [XLEN - 1:0] pc_reg = 0, rs1_reg = 0, rs2_reg = 0, imm_reg = 0;
 
     always @(posedge clock)
@@ -64,15 +64,15 @@ module ex_mem #(
     input bubble,
     input [4:0] rd_in,
     input [XLEN - 1:0] pc_in, imm_in, rs1_in, rs2_in, alu_in,
-    input [7:0] ctrl_in,
+    input [10:0] ctrl_in,
     output [4:0] rd_out,
     output [XLEN - 1:0] pc_out, imm_out, rs1_out, rs2_out, alu_out,
-    output [7:0] ctrl_out
+    output [10:0] ctrl_out
 );
 generate if (BYPASS) begin
     assign {rd_out, pc_out, imm_out, rs1_out, rs2_out, alu_out, ctrl_out} = {rd_in, pc_out, imm_out, rs1_in, rs2_in, alu_in, ctrl_in};
 end else begin
-    reg [7:0] ctrl_reg = 0;
+    reg [10:0] ctrl_reg = 0;
     reg [4:0] rd_reg = 0;
     reg [XLEN - 1:0] pc_reg = 0, imm_reg = 0, rs1_reg = 0, rs2_reg = 0, alu_reg = 0;
 

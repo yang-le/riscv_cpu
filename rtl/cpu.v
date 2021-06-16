@@ -51,6 +51,9 @@ wire s_csri, ex_csri;
 // control MEM
 wire s_store, ex_store, s_load, ex_load;
 wire [2:0] ex_funct3, mem_funct3;
+wire s_ecall, ex_ecall, mem_ecall;
+wire s_ebreak, ex_ebreak, mem_ebreak;
+wire s_illegal, ex_illegal, mem_illegal;
 
 // control pipe
 wire if_id_pause, id_ex_pause, ex_mem_pause, mem_wb_pause; 
@@ -136,6 +139,9 @@ decoder #(
 	.s_csri(s_csri),
 	.s_csrw(s_csrw),
 	.s_32(s_32),
+	.s_ecall(s_ecall),
+	.s_ebreak(s_ebreak),
+	.s_illegal(s_illegal),
 	.s_flush(s_flush)
 );
 
@@ -152,7 +158,7 @@ id_ex #(
 	.rs1_in(id_rs1),
 	.rs2_in(id_rs2),
 	.imm_in(id_imm),
-	.ctrl_in({id_alu_op, s_pc, s_imm, s_32, s_jalr, s_branch, s_branch_zero, s_csr, s_csri, s_csrw, s_jump, s_store, s_load, s_flush, funct3}),
+	.ctrl_in({id_alu_op, s_pc, s_imm, s_32, s_jalr, s_branch, s_branch_zero, s_csr, s_csri, s_csrw, s_jump, s_store, s_load, s_flush, s_ecall, s_ebreak, s_illegal, funct3}),
 	.rd_out(ex_rd),
 	.rs1_fw_out(ex_rs1_fw),
 	.rs2_fw_out(ex_rs2_fw),
@@ -160,7 +166,7 @@ id_ex #(
 	.rs1_out(ex_rs1),
 	.rs2_out(ex_rs2),	
 	.imm_out(ex_imm),
-	.ctrl_out({ex_alu_op, ex_s_pc, ex_s_imm, ex_s_32, ex_jalr, ex_branch, ex_branch_zero, ex_csr, ex_csri, ex_csrw, ex_jump, ex_store, ex_load, ex_flush, ex_funct3})
+	.ctrl_out({ex_alu_op, ex_s_pc, ex_s_imm, ex_s_32, ex_jalr, ex_branch, ex_branch_zero, ex_csr, ex_csri, ex_csrw, ex_jump, ex_store, ex_load, ex_flush, ex_ecall, ex_ebreak, ex_illegal, ex_funct3})
 );
 
 // stage EX
@@ -263,14 +269,14 @@ ex_mem #(
 	.rs1_in(ex_csri ? ex_rs1_fw : f_rs1),
 	.rs2_in(f_rs2),
 	.alu_in(ex_alu),
-	.ctrl_in({ex_csr, ex_csrw, ex_store, ex_load, ex_flush, ex_funct3}),
+	.ctrl_in({ex_csr, ex_csrw, ex_store, ex_load, ex_flush, ex_ecall, ex_ebreak, ex_illegal, ex_funct3}),
 	.rd_out(mem_rd),
 	.pc_out(mem_pc),
 	.imm_out(mem_imm),
 	.rs1_out(mem_rs1),
 	.rs2_out(mem_rs2),
 	.alu_out(mem_alu),
-	.ctrl_out({mem_csr, mem_csrw, mem_store, mem_load, mem_flush, mem_funct3})
+	.ctrl_out({mem_csr, mem_csrw, mem_store, mem_load, mem_flush, mem_ecall, mem_ebreak, mem_illegal, mem_funct3})
 );
 
 // stage MEM
@@ -300,10 +306,17 @@ csr #(
 	.XLEN(XLEN)
 ) csr_inst(
 	.clock(clock),
+	.reset(reset),
 	.s_csr(mem_csr),
 	.s_csrw(mem_csrw),
+	.s_ecall(mem_ecall),
+	.s_ebreak(mem_ebreak),
+	.s_illegal(mem_illegal),
+	.s_load(mem_load),
+	.s_store(mem_store),
 	.funct3(mem_funct3),
 	.addr(mem_imm),
+	.mem_addr(address),
 	.pc_in(mem_pc),
 	.data_in(mem_rs1),
 	.pc_out(),
