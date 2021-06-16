@@ -11,7 +11,7 @@ module div #(
 );
 
 localparam [XLEN - 1:0] MNI = {1'b1, {(XLEN - 2){1'b0}}, 1'b1};
-localparam [XLEN - 1:0] MNIW = {33'b1, {30{1'b0}}, 1'b1};
+localparam [XLEN - 1:0] MNIW = $signed({1'b1, {30{1'b0}}, 1'b1});
 wire [XLEN - 1:0] xmni = s_32 ? MNIW : MNI;
 
 wire [XLEN - 1:0] rs1w = $signed(rs1[31:0]);
