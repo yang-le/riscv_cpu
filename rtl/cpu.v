@@ -44,16 +44,15 @@ wire [4:0] id_alu_op, ex_alu_op;					// use by alu
 wire s_pc, ex_s_pc, s_imm, ex_s_imm, s_32, ex_s_32; // use by alu
 wire s_jalr, s_jump, s_branch, s_branch_zero;		// use by addr_gen
 wire ex_jalr, ex_jump, ex_branch, ex_branch_zero;	// use by addr_gen
-wire s_csr, ex_csr, mem_csr;						// use by csr
-wire s_csrw, ex_csrw, mem_csrw;						// use by csr
-wire s_csri, ex_csri;
+
+wire s_csr, s_csrw, s_csri;							// use by csr
+wire ex_csr, ex_csrw, ex_csri;
+wire s_ecall, s_ebreak, s_illegal;
+wire ex_ecall, ex_ebreak, ex_illegal;
 
 // control MEM
 wire s_store, ex_store, s_load, ex_load;
 wire [2:0] ex_funct3, mem_funct3;
-wire s_ecall, ex_ecall, mem_ecall;
-wire s_ebreak, ex_ebreak, mem_ebreak;
-wire s_illegal, ex_illegal, mem_illegal;
 
 // control pipe
 wire if_id_pause, id_ex_pause, ex_mem_pause, mem_wb_pause; 
@@ -235,11 +234,13 @@ endgenerate
 
 generate if (XLEN == 64) begin
 wire [XLEN - 1:0] alu_signed = $signed(alu_mux[31:0]);
-assign ex_alu = ex_jump ? next_pc : ex_s_32 ? alu_signed : alu_mux;
+assign ex_alu = ex_csr ? csr_o : ex_jump ? next_pc : ex_s_32 ? alu_signed : alu_mux;
 end else
-assign ex_alu = ex_jump ? next_pc : alu_mux;
+assign ex_alu = ex_csr ? csr_o : ex_jump ? next_pc : alu_mux;
 endgenerate
 
+wire s_exception;
+wire [XLEN - 1:0] csr_pc;
 addr_gen #(
 	.XLEN(XLEN)
 ) addr_gen_inst (
@@ -248,13 +249,37 @@ addr_gen #(
     .s_jalr(ex_jalr),
     .s_branch(ex_branch),
     .s_branch_zero(ex_branch_zero),
+	.s_exception(s_exception),
 	.pc(pc),
     .ex_pc(ex_pc),
+	.csr_pc(csr_pc),
     .imm(ex_imm),
     .alu_o(alu_o),
 	.branch_take(branch_take),
 	.npc(npc),
 	.next_pc(next_pc)
+);
+
+csr #(
+	.XLEN(XLEN)
+) csr_inst(
+	.clock(clock),
+	.reset(reset),
+	.s_csr(ex_csr),
+	.s_csrw(ex_csrw),
+	.s_ecall(ex_ecall),
+	.s_ebreak(ex_ebreak),
+	.s_illegal(ex_illegal),
+	.s_load(ex_load),
+	.s_store(ex_store),
+	.funct3(ex_funct3),
+	.addr(ex_imm),
+	.mem_addr(ex_alu),
+	.pc_in(ex_pc),
+	.data_in(ex_csri ? ex_rs1_fw : f_rs1),
+	.s_exception(s_exception),
+	.pc_out(csr_pc),
+	.data_out(csr_o)
 );
 
 ex_mem #(
@@ -264,19 +289,13 @@ ex_mem #(
 	.pause(ex_mem_pause),
 	.bubble(ex_mem_bubble),
 	.rd_in(ex_rd),
-	.pc_in(ex_pc),
-	.imm_in(ex_imm),
-	.rs1_in(ex_csri ? ex_rs1_fw : f_rs1),
 	.rs2_in(f_rs2),
 	.alu_in(ex_alu),
-	.ctrl_in({ex_csr, ex_csrw, ex_store, ex_load, ex_flush, ex_ecall, ex_ebreak, ex_illegal, ex_funct3}),
+	.ctrl_in({ex_store, ex_load, ex_flush, ex_funct3}),
 	.rd_out(mem_rd),
-	.pc_out(mem_pc),
-	.imm_out(mem_imm),
-	.rs1_out(mem_rs1),
 	.rs2_out(mem_rs2),
 	.alu_out(mem_alu),
-	.ctrl_out({mem_csr, mem_csrw, mem_store, mem_load, mem_flush, mem_ecall, mem_ebreak, mem_illegal, mem_funct3})
+	.ctrl_out({mem_store, mem_load, mem_flush, mem_funct3})
 );
 
 // stage MEM
@@ -302,28 +321,7 @@ su #(
     .data_out(store_data)
 );
 
-csr #(
-	.XLEN(XLEN)
-) csr_inst(
-	.clock(clock),
-	.reset(reset),
-	.s_csr(mem_csr),
-	.s_csrw(mem_csrw),
-	.s_ecall(mem_ecall),
-	.s_ebreak(mem_ebreak),
-	.s_illegal(mem_illegal),
-	.s_load(mem_load),
-	.s_store(mem_store),
-	.funct3(mem_funct3),
-	.addr(mem_imm),
-	.mem_addr(address),
-	.pc_in(mem_pc),
-	.data_in(mem_rs1),
-	.pc_out(),
-	.data_out(csr_o)
-);
-
-wire [XLEN - 1:0] mem_rd_reg = mem_load ? mem_data : mem_csr ? csr_o : mem_alu;
+wire [XLEN - 1:0] mem_rd_reg = mem_load ? mem_data : mem_alu;
 mem_wb #(
 	.XLEN(XLEN)
 ) mem_wb_inst (

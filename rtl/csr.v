@@ -17,6 +17,7 @@ module csr #(
     input [XLEN - 1:0] mem_addr,
     input [XLEN - 1:0] pc_in,
     input [XLEN - 1:0] data_in,
+    output s_exception,
     output [XLEN - 1:0] pc_out,
 	output reg [XLEN - 1:0] data_out
 );
@@ -194,9 +195,9 @@ end endgenerate
         .s_misalign(s_misalign)
     );
 
-    wire exception = s_ebreak || s_ecall || l_misalign || s_misalign || i_misalign;
-
     assign pc_out = mtvec;
+    assign s_exception = s_ebreak || s_ecall || l_misalign || s_misalign || i_misalign;
+
     reg [XLEN - 1:0] mtvec, mepc, mcause, mie, mip, mtval, mscratch, mstatus;
 
     initial begin
@@ -210,16 +211,15 @@ end endgenerate
         mstatus = 0;        
     end
 
-    reg [XLEN - 1:0] data_w;
-    always @(*) case (funct3)
-    `CSRRW,
-    `CSRRWI: data_w = data_in;
-    `CSRRS,
-    `CSRRSI: data_w = data_out | data_in;
-    `CSRRC,
-    `CSRRCI: data_w = data_out & ~data_in;
-    default: data_w = data_out;
-    endcase
+    wire [XLEN - 1:0] data_w;
+    csr_op #(
+        .XLEN(XLEN)
+    ) csr_op_inst (
+        .funct3(funct3),
+        .data_in(data_in),
+        .data_out(data_out),
+        .data_w(data_w)
+    );
 
     always @(posedge clock) begin
         if (reset) begin
@@ -231,7 +231,7 @@ end endgenerate
             mtval <= 0;
             mscratch <= 0;
             mstatus <= 0;
-        end else if (exception) begin
+        end else if (s_exception) begin
             mepc <= pc_in;
             mstatus[`MPIE] <= mstatus[`MIE];
             mstatus[`MIE] <= 0;
@@ -243,39 +243,58 @@ end endgenerate
                     l_misalign ? 4 : mcause;
             mtval <= (s_misalign || l_misalign) ? mem_addr : 0;
         end else if (s_csrw) case (addr)
-        MTVEC:      mtvec <= data_w;
-        MEPC:       mepc <= data_w;
-        MCAUSE:     mcause <= data_w;
-        MIE:        mie <= data_w;
-        MIP:        mip <=data_w;
-        MTVAL:      mtval <= data_w;
-        MSCRATCH:   mscratch <= data_w;
-        MSTATUS:    mstatus <= data_w;
+            MTVEC:      mtvec <= data_w;
+            MEPC:       mepc <= data_w;
+            MCAUSE:     mcause <= data_w;
+            MIE:        mie <= data_w;
+            MIP:        mip <=data_w;
+            MTVAL:      mtval <= data_w;
+            MSCRATCH:   mscratch <= data_w;
+            MSTATUS:    mstatus <= data_w;
         endcase
 
         if (s_csr) case (addr)
-        MTVEC:      $display("csr: %x: %s MTVEC %x", pc_in, s_csrw ? "write" : "read", s_csrw ? data_w : data_out);
-        MEPC:       $display("csr: %x: %s MEPC %x", pc_in, s_csrw ? "write" : "read", s_csrw ? data_w : data_out);
-        MCAUSE:     $display("csr: %x: %s MCAUSE %x", pc_in, s_csrw ? "write" : "read", s_csrw ? data_w : data_out);
-        MIE:        $display("csr: %x: %s MIE %x", pc_in, s_csrw ? "write" : "read", s_csrw ? data_w : data_out);
-        MIP:        $display("csr: %x: %s MIP %x", pc_in, s_csrw ? "write" : "read", s_csrw ? data_w : data_out);
-        MTVAL:      $display("csr: %x: %s MTVAL %x", pc_in, s_csrw ? "write" : "read", s_csrw ? data_w : data_out);
-        MSCRATCH:   $display("csr: %x: %s MSCRATCH %x", pc_in, s_csrw ? "write" : "read", s_csrw ? data_w : data_out);
-        MSTATUS:    $display("csr: %x: %s MSTATUS %x", pc_in, s_csrw ? "write" : "read", s_csrw ? data_w : data_out);
-        default:    $display("error: %x: try to %s unknow address %x", pc_in, s_csrw ? "write" : "read", addr);
+            MTVEC:      $display("csr: %x: %s MTVEC %x", pc_in, s_csrw ? "write" : "read", s_csrw ? data_w : data_out);
+            MEPC:       $display("csr: %x: %s MEPC %x", pc_in, s_csrw ? "write" : "read", s_csrw ? data_w : data_out);
+            MCAUSE:     $display("csr: %x: %s MCAUSE %x", pc_in, s_csrw ? "write" : "read", s_csrw ? data_w : data_out);
+            MIE:        $display("csr: %x: %s MIE %x", pc_in, s_csrw ? "write" : "read", s_csrw ? data_w : data_out);
+            MIP:        $display("csr: %x: %s MIP %x", pc_in, s_csrw ? "write" : "read", s_csrw ? data_w : data_out);
+            MTVAL:      $display("csr: %x: %s MTVAL %x", pc_in, s_csrw ? "write" : "read", s_csrw ? data_w : data_out);
+            MSCRATCH:   $display("csr: %x: %s MSCRATCH %x", pc_in, s_csrw ? "write" : "read", s_csrw ? data_w : data_out);
+            MSTATUS:    $display("csr: %x: %s MSTATUS %x", pc_in, s_csrw ? "write" : "read", s_csrw ? data_w : data_out);
+            default:    $display("error: %x: try to %s unknow address %x", pc_in, s_csrw ? "write" : "read", addr);
         endcase
     end
 
     always @(*) case (addr)
-    MTVEC:      data_out = mtvec;
-    MEPC:       data_out = mepc;
-    MCAUSE:     data_out = mcause;
-    MIE:        data_out = mie;
-    MIP:        data_out = mip;
-    MTVAL:      data_out = mtval;
-    MSCRATCH:   data_out = mscratch;
-    MSTATUS:    data_out = mstatus;
-    default:    data_out = 0;
+        MTVEC:      data_out = mtvec;
+        MEPC:       data_out = mepc;
+        MCAUSE:     data_out = mcause;
+        MIE:        data_out = mie;
+        MIP:        data_out = mip;
+        MTVAL:      data_out = mtval;
+        MSCRATCH:   data_out = mscratch;
+        MSTATUS:    data_out = mstatus;
+        default:    data_out = 0;
+    endcase
+endmodule
+
+module csr_op #(
+	parameter XLEN = 32
+)(
+	input [2:0] funct3,
+    input [XLEN - 1:0] data_in,
+    input [XLEN - 1:0] data_out,
+    output reg [XLEN - 1:0] data_w
+);
+    always @(*) case (funct3)
+    `CSRRW,
+    `CSRRWI: data_w = data_in;
+    `CSRRS,
+    `CSRRSI: data_w = data_out | data_in;
+    `CSRRC,
+    `CSRRCI: data_w = data_out & ~data_in;
+    default: data_w = data_out;
     endcase
 endmodule
 

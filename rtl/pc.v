@@ -29,8 +29,10 @@ module addr_gen #(
     input s_jalr,
     input s_branch,
     input s_branch_zero,
+    input s_exception,
     input [XLEN - 1:0] pc,
     input [XLEN - 1:0] ex_pc,
+    input [XLEN - 1:0] csr_pc,
     input [XLEN - 1:0] imm,
     input [XLEN - 1:0] alu_o,
     output branch_take,
@@ -38,6 +40,6 @@ module addr_gen #(
     output [XLEN - 1:0] next_pc
 );
     assign branch_take = s_branch && (s_branch_zero ~^ alu_z);
-    assign npc = s_jump ? (alu_o & ~s_jalr) : next_pc;
+    assign npc = s_jump ? (alu_o & ~s_jalr) : s_exception ? csr_pc : next_pc;
     assign next_pc = (branch_take || s_jump ? ex_pc : pc) + (branch_take ? imm : 4);
 endmodule
