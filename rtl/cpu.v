@@ -60,15 +60,15 @@ wire if_id_bubble, id_ex_bubble, ex_mem_bubble, mem_wb_bubble;
 wire s_flush, ex_flush, mem_flush;
 
 // stage IF
-wire pc_pause;
-wire [XLEN - 1:0] npc;
+wire pc_pause, s_exception;
+wire [XLEN - 1:0] npc, csr_pc;
 pc #(
 	.XLEN(XLEN)
 ) pc_inst(
 	.clock(clock),
 	.reset(reset),
 	.pause(pc_pause),
-    .npc(npc),
+    .npc((s_exception || ex_mret) ? csr_pc : npc),
 	.pc(pc)
 );
 
@@ -224,7 +224,7 @@ div #(
 );
 endgenerate
 
-wire [XLEN - 1:0] next_pc, ex_alu, alu_mux;
+wire [XLEN - 1:0] ex_alu, alu_mux;
 generate if (ENABLE_DIV)
 assign alu_mux = ex_alu_op[4:2] == 3'b101 ? div_o : ex_alu_op[4:2] == 3'b100 ? mul_o : alu_o;
 else if (ENABLE_MUL)
@@ -235,12 +235,11 @@ endgenerate
 
 generate if (XLEN == 64) begin
 wire [XLEN - 1:0] alu_signed = $signed(alu_mux[31:0]);
-assign ex_alu = ex_csr ? csr_o : ex_jump ? next_pc : ex_s_32 ? alu_signed : alu_mux;
+assign ex_alu = ex_csr ? csr_o : ex_jump ? ex_pc + 4 : ex_s_32 ? alu_signed : alu_mux;
 end else
-assign ex_alu = ex_csr ? csr_o : ex_jump ? next_pc : alu_mux;
+assign ex_alu = ex_csr ? csr_o : ex_jump ? ex_pc + 4 : alu_mux;
 endgenerate
 
-wire s_exception;
 wire [XLEN - 1:0] mtvec, mepc, mcause;
 addr_gen #(
 	.XLEN(XLEN)
@@ -250,18 +249,12 @@ addr_gen #(
     .s_jalr(ex_jalr),
     .s_branch(ex_branch),
     .s_branch_zero(ex_branch_zero),
-	.s_exception(s_exception),
-	.s_mret(ex_mret),
 	.pc(pc),
     .ex_pc(ex_pc),
-	.mtvec(mtvec),
-	.mepc(mepc),
-	.mcause(mcause),
     .imm(ex_imm),
     .alu_o(alu_o),
 	.branch_take(branch_take),
-	.npc(npc),
-	.next_pc(next_pc)
+	.npc(npc)
 );
 
 csr #(
@@ -277,15 +270,14 @@ csr #(
 	.s_illegal(ex_illegal),
 	.s_load(ex_load),
 	.s_store(ex_store),
+	.i_misalign(npc[1:0] != 2'b00),
 	.funct3(ex_funct3),
 	.addr(ex_imm),
 	.mem_addr(ex_alu),
 	.pc_in(ex_pc),
 	.data_in(ex_csri ? ex_rs1_fw : f_rs1),
 	.s_exception(s_exception),
-	.mtvec(mtvec),
-	.mepc(mepc),
-	.mcause(mcause),
+	.pc_out(csr_pc),
 	.data_out(csr_o)
 );
 

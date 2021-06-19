@@ -13,20 +13,21 @@ module csr #(
     input s_illegal,
 	input s_load,
 	input s_store,
+    input i_misalign,
 	input [2:0] funct3,
 	input [11:0] addr,
     input [XLEN - 1:0] mem_addr,
     input [XLEN - 1:0] pc_in,
     input [XLEN - 1:0] data_in,
     output s_exception,
-    output [XLEN - 1:0] mtvec, mepc, mcause,
+    output [XLEN - 1:0] pc_out,
 	output [XLEN - 1:0] data_out
 );
     `define SIE 1
     `define MIE 3
     `define MPIE 7
 
-    wire i_misalign, l_misalign, s_misalign;
+    wire l_misalign, s_misalign;
     misalign_detector #(
         .XLEN(XLEN)
     ) misalign_detector_inst (
@@ -34,24 +35,24 @@ module csr #(
         .s_store(s_store),
         .funct3(funct3),
         .addr(mem_addr),
-        .pc(pc_in),
-        .i_misalign(i_misalign),
         .l_misalign(l_misalign),
         .s_misalign(s_misalign)
     );
 
-    wire [XLEN - 1:0] /* mepc, mcause, */ mtval, mstatus;
+    wire [XLEN - 1:0] mtvec;
+    wire [XLEN - 1:0] mepc, mcause, mtval, mstatus;
     reg [XLEN - 1:0] mepc_next, mcause_next, mtval_next, mstatus_next;
 
     assign s_exception = s_ebreak || s_ecall || l_misalign || s_misalign || i_misalign;
-  
+    assign pc_out = s_mret ? mepc : (mtvec[1:0] == 2'b01 && mcause[XLEN - 1]) ? ({mtvec[XLEN - 1:2], 2'b00} + {mcause[XLEN - 2:0], 2'b00}) : {mtvec[XLEN - 1:2], 2'b00};
+
     always @(*) begin
         mepc_next = mepc;
         mcause_next = mcause;
         mtval_next = mtval;
         mstatus_next = mstatus;
 
-        if (s_exception) begin
+        if (mstatus[`MIE] && s_exception) begin
             mepc_next = pc_in;
             mstatus_next[`MPIE] = mstatus[`MIE];
             mstatus_next[`MIE] = 0;
@@ -111,7 +112,8 @@ module csr_regs #(
     input [XLEN - 1:0] data_w,
     input [XLEN - 1:0] mepc_next, mcause_next, mtval_next, mstatus_next,
     output reg [XLEN - 1:0] data_out,
-    output reg [XLEN - 1:0] mepc, mcause, mtval, mstatus, mtvec
+    output reg [XLEN - 1:0] mepc, mcause, mtval, mstatus,
+    output reg [XLEN - 1:0] mtvec
 );
     `include "csr_def.vh"
 
@@ -126,7 +128,7 @@ module csr_regs #(
         mip = 0;
         mtval = 0;
         mscratch = 0;
-        mstatus = 0;        
+        mstatus = 1 << `MIE;
     end
 
     always @(posedge clock) begin
@@ -138,7 +140,7 @@ module csr_regs #(
             mip <= 0;
             mtval <= 0;
             mscratch <= 0;
-            mstatus <= 0;
+            mstatus <= 1 << `MIE;
         end else if (s_csrw) case (addr)
             MTVEC:      mtvec <= data_w;
             MEPC:       mepc <= data_w;
@@ -207,13 +209,9 @@ module misalign_detector #(
 	input s_store,
 	input [2:0] funct3,
     input [2:0] addr,
-    input [1:0] pc,
-    output i_misalign,
     output l_misalign,
     output s_misalign
 );
-    assign i_misalign = pc[1:0] != 0;
-
     wire mis_lh = (funct3 == `LH || funct3 == `LHU) && (addr[0] != 1'b0);
     wire mis_lw = (funct3 == `LW || funct3 == `LWU) && (addr[1:0] != 2'b00);
 generate if (XLEN == 64) begin
