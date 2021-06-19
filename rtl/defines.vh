@@ -91,7 +91,7 @@
 `define FENCE_I     3'b001
 
 // system
-`define ENV         3'b000
+`define PRIV        3'b000
 `define CSRRW       3'b001
 `define CSRRS       3'b010
 `define CSRRC       3'b011
@@ -99,8 +99,11 @@
 `define CSRRSI      3'b110
 `define CSRRCI      3'b111
 
-`define IMM_ECALL   0
-`define IMM_EBREAK  1
+`define IMM_ECALL   12'h000
+`define IMM_EBREAK  12'h001
+`define IMM_URET    12'h002
+`define IMM_SRET    12'h102
+`define IMM_MRET    12'h302
 
 // muldiv
 `define MUL         3'b000

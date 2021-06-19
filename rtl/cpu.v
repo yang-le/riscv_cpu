@@ -47,8 +47,8 @@ wire ex_jalr, ex_jump, ex_branch, ex_branch_zero;	// use by addr_gen
 
 wire s_csr, s_csrw, s_csri;							// use by csr
 wire ex_csr, ex_csrw, ex_csri;
-wire s_ecall, s_ebreak, s_illegal;
-wire ex_ecall, ex_ebreak, ex_illegal;
+wire s_ecall, s_ebreak, s_mret, s_illegal;
+wire ex_ecall, ex_ebreak, ex_mret, ex_illegal;
 
 // control MEM
 wire s_store, ex_store, s_load, ex_load;
@@ -138,10 +138,11 @@ decoder #(
 	.s_csri(s_csri),
 	.s_csrw(s_csrw),
 	.s_32(s_32),
+	.s_flush(s_flush),
 	.s_ecall(s_ecall),
 	.s_ebreak(s_ebreak),
-	.s_illegal(s_illegal),
-	.s_flush(s_flush)
+	.s_mret(s_mret),
+	.s_illegal(s_illegal)
 );
 
 id_ex #(
@@ -157,7 +158,7 @@ id_ex #(
 	.rs1_in(id_rs1),
 	.rs2_in(id_rs2),
 	.imm_in(id_imm),
-	.ctrl_in({id_alu_op, s_pc, s_imm, s_32, s_jalr, s_branch, s_branch_zero, s_csr, s_csri, s_csrw, s_jump, s_store, s_load, s_flush, s_ecall, s_ebreak, s_illegal, funct3}),
+	.ctrl_in({id_alu_op, s_pc, s_imm, s_32, s_jalr, s_branch, s_branch_zero, s_csr, s_csri, s_csrw, s_jump, s_store, s_load, s_flush, s_ecall, s_ebreak, s_mret, s_illegal, funct3}),
 	.rd_out(ex_rd),
 	.rs1_fw_out(ex_rs1_fw),
 	.rs2_fw_out(ex_rs2_fw),
@@ -165,7 +166,7 @@ id_ex #(
 	.rs1_out(ex_rs1),
 	.rs2_out(ex_rs2),	
 	.imm_out(ex_imm),
-	.ctrl_out({ex_alu_op, ex_s_pc, ex_s_imm, ex_s_32, ex_jalr, ex_branch, ex_branch_zero, ex_csr, ex_csri, ex_csrw, ex_jump, ex_store, ex_load, ex_flush, ex_ecall, ex_ebreak, ex_illegal, ex_funct3})
+	.ctrl_out({ex_alu_op, ex_s_pc, ex_s_imm, ex_s_32, ex_jalr, ex_branch, ex_branch_zero, ex_csr, ex_csri, ex_csrw, ex_jump, ex_store, ex_load, ex_flush, ex_ecall, ex_ebreak, ex_mret, ex_illegal, ex_funct3})
 );
 
 // stage EX
@@ -240,7 +241,7 @@ assign ex_alu = ex_csr ? csr_o : ex_jump ? next_pc : alu_mux;
 endgenerate
 
 wire s_exception;
-wire [XLEN - 1:0] csr_pc;
+wire [XLEN - 1:0] mtvec, mepc, mcause;
 addr_gen #(
 	.XLEN(XLEN)
 ) addr_gen_inst (
@@ -250,9 +251,12 @@ addr_gen #(
     .s_branch(ex_branch),
     .s_branch_zero(ex_branch_zero),
 	.s_exception(s_exception),
+	.s_mret(ex_mret),
 	.pc(pc),
     .ex_pc(ex_pc),
-	.csr_pc(csr_pc),
+	.mtvec(mtvec),
+	.mepc(mepc),
+	.mcause(mcause),
     .imm(ex_imm),
     .alu_o(alu_o),
 	.branch_take(branch_take),
@@ -269,6 +273,7 @@ csr #(
 	.s_csrw(ex_csrw),
 	.s_ecall(ex_ecall),
 	.s_ebreak(ex_ebreak),
+	.s_mret(ex_mret),
 	.s_illegal(ex_illegal),
 	.s_load(ex_load),
 	.s_store(ex_store),
@@ -278,7 +283,9 @@ csr #(
 	.pc_in(ex_pc),
 	.data_in(ex_csri ? ex_rs1_fw : f_rs1),
 	.s_exception(s_exception),
-	.pc_out(csr_pc),
+	.mtvec(mtvec),
+	.mepc(mepc),
+	.mcause(mcause),
 	.data_out(csr_o)
 );
 

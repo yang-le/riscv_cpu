@@ -71,6 +71,7 @@ module decoder #(
     output s_flush,
     output s_ecall,
     output s_ebreak,
+    output s_mret,
     output s_illegal
 );
     assign opcode = inst[6:0];
@@ -99,10 +100,11 @@ module decoder #(
     assign s_flush = opcode == `MISC_MEM && funct3 == `FENCE_I;
     assign s_ecall = inst == 32'h0000_0073;
     assign s_ebreak = inst == 32'h0010_0073;
+    assign s_mret = inst == 32'h3020_0073;
 
     wire s_fence_tso = inst == 32'h8330_000f;
     wire s_fence = opcode == `MISC_MEM && funct3 == `FENCE && inst[31:28] == 4'b0000;
-    assign s_illegal = alu_op == 5'b00000 && !s_flush && !s_ecall && !s_ebreak && !s_fence_tso && !s_fence;
+    assign s_illegal = alu_op == 5'b00000 && !s_flush && !s_ecall && !s_ebreak && !s_fence_tso && !s_fence && !s_mret;
 
     inst_type inst_type_inst (
         .opcode(opcode),
@@ -312,8 +314,9 @@ module decoder #(
             default:$display("error: %x: MISC_MEM but unknown funct3 %b", pc, funct3);
         endcase
         `SYSTEM: case (funct3)
-            `ENV: if (imm == `IMM_ECALL) $display("decode: %x: ECALL", pc); else
-                            if (imm == `IMM_EBREAK) $display("decode: %x: EBREAK", pc); else $display("error: %x: SYSTEM_ENV but unknown imm %b", pc, imm);
+            `PRIV: if (imm[11:0] == `IMM_ECALL) $display("decode: %x: ECALL", pc); else
+                    if (imm[11:0] == `IMM_EBREAK) $display("decode: %x: EBREAK", pc); else
+                    if (imm[11:0] == `IMM_MRET) $display("decode: %x: MRET", pc); else $display("error: %x: SYSTEM_ENV but unknown imm %b", pc, imm);
             `CSRRW: $display("decode: %x: CSRRW", pc);
             `CSRRS: $display("decode: %x: CSRRS", pc);
             `CSRRC: $display("decode: %x: CSRRC", pc);
