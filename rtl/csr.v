@@ -62,7 +62,7 @@ module csr #(
                     s_ebreak ? 3 :
                     s_misalign ? 6 :
                     l_misalign ? 4 : mcause;
-            mtval_next = (s_misalign || l_misalign) ? mem_addr : 0;
+            mtval_next = (i_misalign || s_ebreak) ? pc_in : (s_misalign || l_misalign) ? mem_addr : 0;
         end else if (s_mret)
             mstatus_next[`MIE] = mstatus[`MPIE];
     end

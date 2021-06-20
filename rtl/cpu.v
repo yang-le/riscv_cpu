@@ -95,12 +95,12 @@ if_id #(
 // stage ID
 wire branch_take;
 hazard hazard_inst(
-	.ex_jump(ex_jump),
-	.branch_take(branch_take),
+	.ex_jump(ex_mret || branch_take || ex_jump),
     .ex_load(ex_load),
 	.id_flush(s_flush),
 	.ex_flush(ex_flush),
 	.mem_flush(mem_flush),
+	.s_exception(s_exception),
     .ex_rd(ex_rd),
     .rs1(rs1),
     .rs2(rs2),

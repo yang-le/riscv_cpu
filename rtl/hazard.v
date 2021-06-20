@@ -1,11 +1,11 @@
 
 module hazard(
     input ex_jump,
-    input branch_take,
     input ex_load,
     input id_flush,
     input ex_flush,
     input mem_flush,
+    input s_exception,
     input [4:0] ex_rd,
     input [4:0] rs1,
     input [4:0] rs2,
@@ -23,6 +23,6 @@ module hazard(
     assign pipe_pause = load_hazard ? PIPE_ID : 0;
     assign pipe_bubble = id_flush ? PIPE_ID :
                         load_hazard ? PIPE_EX :
-                        (ex_flush || branch_take || ex_jump) ? (PIPE_ID | PIPE_EX) :
-                        mem_flush ? (PIPE_ID | PIPE_EX | PIPE_MEM) : 0;
+                        (ex_flush || ex_jump) ? (PIPE_ID | PIPE_EX) :
+                        (s_exception || mem_flush) ? (PIPE_ID | PIPE_EX | PIPE_MEM) : 0;
 endmodule
