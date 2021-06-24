@@ -112,10 +112,8 @@ hazard hazard_inst(
 decoder #(
 	.XLEN(XLEN)
 ) decoder_inst (
-`ifdef DEBUG
 	.clock(clock),
 	.pc(id_pc),
-`endif
     .inst(id_inst),
     .opcode(opcode),
 	.itype(itype),

@@ -42,10 +42,8 @@ endmodule
 module decoder #(
 	parameter XLEN = 32
 )(
-`ifdef DEBUG
     input clock,
     input [XLEN - 1:0] pc,
-`endif
     input [31:0] inst,
     output [6:0] opcode,
     output [2:0] itype,
@@ -98,11 +96,11 @@ module decoder #(
 
     assign s_32 = opcode == `OP_32 || opcode == `OP_IMM_32;
     assign s_flush = opcode == `MISC_MEM && funct3 == `FENCE_I;
-    assign s_ecall = inst == 32'h0000_0073;
-    assign s_ebreak = inst == 32'h0010_0073;
-    assign s_mret = inst == 32'h3020_0073;
+    assign s_ecall = inst == `INST_ECALL;
+    assign s_ebreak = inst == `INST_EBREAK;
+    assign s_mret = inst == `INST_MRET;
 
-    wire s_fence_tso = inst == 32'h8330_000f;
+    wire s_fence_tso = inst == `INST_FENCE_TSO;
     wire s_fence = opcode == `MISC_MEM && funct3 == `FENCE && inst[31:28] == 4'b0000;
     assign s_illegal = alu_op == 5'b00000 && !s_flush && !s_ecall && !s_ebreak && !s_fence_tso && !s_fence && !s_mret;
 
@@ -201,7 +199,6 @@ module decoder #(
         endcase
         default:    alu_op = (s_load || s_store || s_pc || s_jalr) ? `ALU_ADD : 0;
     endcase
-`ifdef DEBUG
     always @(posedge clock) case (opcode)
         `LUI:       $display("decode: %x: LUI", pc);
         `OP_IMM: case (funct3)
@@ -327,5 +324,4 @@ module decoder #(
         endcase
         default:    $display("error: %x: unknown opcode %b", pc, opcode);
     endcase
-`endif
 endmodule

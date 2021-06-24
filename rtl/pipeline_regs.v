@@ -20,7 +20,7 @@ end else begin
 
     always @(posedge clock)
         if (~pause)
-            {pc_reg, inst_reg} <= bubble ? {{XLEN{1'b0}}, `NOP} : {pc_in, inst_in};
+            {pc_reg, inst_reg} <= bubble ? {{XLEN{1'b0}}, `INST_NOP} : {pc_in, inst_in};
 
     assign {pc_out, inst_out} = {pc_reg, inst_reg};
 end endgenerate
