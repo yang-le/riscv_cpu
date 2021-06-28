@@ -65,12 +65,16 @@ cpu #(
     .pc(pc)
 );
 
-ram_dp #(
+
 `ifdef VERILATOR
+ram_dp_burst #(
 	.DEPTH(1024 * 1024),
-`endif
 	.WIDTH(16),
 	.BURST(XLEN / 16)
+`else
+ram_dp #(
+	.WIDTH(XLEN)
+`endif
 ) mem_inst (
 	.clock(clock),
     .write_en(store),

@@ -40,6 +40,49 @@ endmodule
 module generic_ram_dp #(
 	parameter WIDTH = 8,
 	parameter DEPTH = 32,
+    parameter DATAFILE = "",
+    parameter READ_OLD = 1
+)(
+	input clock,
+	input write_en,
+	input [$clog2(DEPTH) - 1:0] addr_w,
+    input [$clog2(DEPTH) - 1:0] addr_r1,
+    input [$clog2(DEPTH) - 1:0] addr_r2,
+	input [WIDTH - 1:0] data_i,
+	output [WIDTH - 1:0] data_o1,
+    output [WIDTH - 1:0] data_o2
+);
+    reg [WIDTH - 1:0] words[DEPTH - 1:0];
+
+    generate if (DATAFILE)
+        initial begin
+            $readmemh(DATAFILE, words);
+        end
+    else
+        initial begin: init
+            integer i;
+            for (i = 0; i < DEPTH; i = i + 1)
+                words[i] = 0;
+        end
+    endgenerate
+
+    always @ (posedge clock) begin
+		if (write_en)
+            words[addr_w] <= data_i;
+    end
+
+    generate if (READ_OLD) begin
+        assign data_o1 = words[addr_r1];
+        assign data_o2 = words[addr_r2];
+    end else begin
+        assign data_o1 = (write_en && addr_w == addr_r1) ? data_i : words[addr_r1];
+        assign data_o2 = (write_en && addr_w == addr_r2) ? data_i : words[addr_r2];
+    end endgenerate
+endmodule
+
+module generic_ram_dp_burst #(
+	parameter WIDTH = 8,
+	parameter DEPTH = 32,
     parameter BURST = 1,
     parameter DATAFILE = "",
     parameter READ_OLD = 1
