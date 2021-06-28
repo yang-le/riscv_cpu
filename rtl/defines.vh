@@ -24,8 +24,6 @@
 `define JAL			7'b1101111
 `define SYSTEM		7'b1110011
 
-`define FUNC3_JALR	3'b000
-
 // branch
 `define BEQ			3'b000
 `define BNE			3'b001

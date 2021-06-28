@@ -79,7 +79,7 @@ module decoder #(
     assign rs2 = (itype == `TYPE_I || itype == `TYPE_U || itype == `TYPE_J) ? 0 : inst[24:20];
     assign rd = (itype == `TYPE_S || itype == `TYPE_B) ? 0 : inst[11:7];
 
-    assign s_jalr = opcode == `JALR && funct3 == `FUNC3_JALR;
+    assign s_jalr = opcode == `JALR && funct3 == 3'b0;
     assign s_jump = opcode == `JAL || s_jalr;
     assign s_pc = opcode == `AUIPC || opcode == `JAL;
 
