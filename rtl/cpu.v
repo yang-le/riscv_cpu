@@ -3,12 +3,13 @@
 module cpu #(
 	parameter XLEN = 32,
 	parameter ENABLE_MUL = 0,
-	parameter ENABLE_DIV = 0
+	parameter ENABLE_DIV = 0,
+	parameter ENABLE_RVC = 0
 )(
 	input clock,
 	input reset,
 	input [XLEN - 1:0] load_data,
-	input [XLEN - 1:0] inst,
+	input [31:0] inst,
 	output mem_load,
 	output mem_store,
 	output [XLEN - 1:0] store_data,
@@ -23,7 +24,7 @@ wire [6:0] opcode;
 
 // IF_ID
 wire [XLEN - 1:0] id_pc, ex_pc, mem_pc;				// use by alu
-wire [31:0] if_inst,id_inst;						// use by decode
+wire [31:0] id_inst;								// use by decode
 
 // ID_EX		
 wire [4:0] rd, ex_rd, mem_rd, wb_rd;				// use by stage WB
@@ -60,7 +61,7 @@ wire if_id_bubble, id_ex_bubble, ex_mem_bubble, mem_wb_bubble;
 wire s_flush, ex_flush, mem_flush;
 
 // stage IF
-wire pc_pause, s_exception;
+wire pc_pause, s_exception, s_rvc;
 wire [XLEN - 1:0] npc, csr_pc;
 pc #(
 	.XLEN(XLEN)
@@ -72,14 +73,6 @@ pc #(
 	.pc(pc)
 );
 
-ilu #(
-	.XLEN(XLEN)
-) ilu_inst (
-    .pc(pc),
-    .inst_in(inst),
-    .inst_out(if_inst)
-);
-
 if_id #(
 	.XLEN(XLEN)
 ) if_id_inst (
@@ -87,7 +80,7 @@ if_id #(
 	.pause(if_id_pause),
 	.bubble(if_id_bubble),
 	.pc_in(pc),
-	.inst_in(if_inst),
+	.inst_in(inst),
 	.pc_out(id_pc),
 	.inst_out(id_inst)
 );
@@ -109,12 +102,24 @@ hazard hazard_inst(
 	.pipe_bubble({if_id_bubble, id_ex_bubble, ex_mem_bubble, mem_wb_bubble})
 );
 
+wire [31:0] id_rcv_inst;
+generate if (ENABLE_RVC)
+rvc #(
+    .XLEN(XLEN)
+) rvc_inst (
+    .clock(clock),
+    .pc(pc),
+    .inst_in(id_inst),
+    .inst_out(id_rcv_inst)
+);
+endgenerate
+
 decoder #(
 	.XLEN(XLEN)
 ) decoder_inst (
 	.clock(clock),
 	.pc(id_pc),
-    .inst(id_inst),
+    .inst(s_rvc ? id_rcv_inst : id_inst),
     .opcode(opcode),
 	.itype(itype),
     .funct3(funct3),
@@ -247,6 +252,7 @@ addr_gen #(
     .s_jalr(ex_jalr),
     .s_branch(ex_branch),
     .s_branch_zero(ex_branch_zero),
+	.s_rvc(s_rvc),
 	.pc(pc),
     .ex_pc(ex_pc),
     .imm(ex_imm),
@@ -268,7 +274,7 @@ csr #(
 	.s_illegal(ex_illegal),
 	.s_load(ex_load),
 	.s_store(ex_store),
-	.i_misalign(npc[1:0] != 2'b00),
+	.i_misalign(!ENABLE_RVC && npc[1:0] != 2'b00),
 	.funct3(ex_funct3),
 	.addr(ex_imm),
 	.mem_addr(ex_alu),
@@ -302,7 +308,7 @@ wire [XLEN - 1:0] mem_data;
 lu #(
 	.XLEN(XLEN)
 ) lu_inst(
-	.addr(address),
+	.s_byte(address[0]),
     .funct3(mem_funct3),
     .data_in(load_data),
     .data_out(mem_data)
@@ -311,7 +317,7 @@ lu #(
 su #(
 	.XLEN(XLEN)
 ) su_inst(
-	.addr(address),
+	.s_byte(address[0]),
     .funct3(mem_funct3),
 	.data_l(load_data),
     .data_in(mem_rs2),

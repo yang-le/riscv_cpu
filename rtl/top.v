@@ -39,11 +39,11 @@ always @(posedge clock) begin
 
 	if (store && address == ADDR_SIG_BEGIN) begin
 		$display("sig_begin: %x", store_data[31:0]);
-		sig_begin <= store_data[31:0] / (XLEN / 8);
+		sig_begin <= store_data[31:0] / 2;
 	end
 	if (store && address == ADDR_SIG_END) begin
 		$display("sig_end: %x", store_data[31:0]);
-		sig_end <= (store_data[31:0] / (XLEN / 8)) - 1;
+		sig_end <= (store_data[31:0] / 2) - 1;
 	end
 end
 `endif
@@ -51,7 +51,8 @@ end
 cpu #(
 	.XLEN(XLEN),
 	.ENABLE_MUL(1),
-	.ENABLE_DIV(1)
+	.ENABLE_DIV(1),
+	.ENABLE_RVC(0)
 )cpu_inst (
 	.clock(clock),
 	.reset(reset),
@@ -63,37 +64,20 @@ cpu #(
 	.address(address),
     .pc(pc)
 );
-`ifdef ROM
-ram #(
-	.WIDTH(XLEN)
-) ram_inst (
-	.clock(clock),
-    .write_en(store),
-	.addr(address[XLEN - 1:$clog2(XLEN / 8)]),
-	.data_i(store_data),
-	.data_o(load_data)
-);
 
-rom #(
-	.WIDTH(XLEN)
-) rom_inst (
-	.addr(pc[XLEN - 1:$clog2(XLEN / 8)]),
-	.data_o(inst)
-);
-`else
 ram_dp #(
 `ifdef VERILATOR
 	.DEPTH(1024 * 1024),
 `endif
-	.WIDTH(XLEN)
+	.WIDTH(16),
+	.BURST(XLEN / 16)
 ) mem_inst (
 	.clock(clock),
     .write_en(store),
-	.iaddr(pc[XLEN - 1:$clog2(XLEN / 8)]),
-	.daddr(address[XLEN - 1:$clog2(XLEN / 8)]),
+	.iaddr(pc[XLEN - 1:1]),
+	.daddr(address[XLEN - 1:1]),
 	.data_i(store_data),
 	.data_o(load_data),
 	.inst_o(inst)
 );
-`endif
 endmodule

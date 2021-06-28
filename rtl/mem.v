@@ -40,6 +40,7 @@ endmodule
 module generic_ram_dp #(
 	parameter WIDTH = 8,
 	parameter DEPTH = 32,
+    parameter BURST = 1,
     parameter DATAFILE = "",
     parameter READ_OLD = 1
 )(
@@ -48,9 +49,9 @@ module generic_ram_dp #(
 	input [$clog2(DEPTH) - 1:0] addr_w,
     input [$clog2(DEPTH) - 1:0] addr_r1,
     input [$clog2(DEPTH) - 1:0] addr_r2,
-	input [WIDTH - 1:0] data_i,
-	output [WIDTH - 1:0] data_o1,
-    output [WIDTH - 1:0] data_o2
+	input [WIDTH * BURST - 1:0] data_i,
+	output [WIDTH * BURST - 1:0] data_o1,
+    output [WIDTH * BURST - 1:0] data_o2
 );
     reg [WIDTH - 1:0] words[DEPTH - 1:0];
 
@@ -66,17 +67,24 @@ module generic_ram_dp #(
         end
     endgenerate
 
+    integer i;
     always @ (posedge clock) begin
-		if (write_en)
-            words[addr_w] <= data_i;
+		if (write_en) for (i = 0; i < BURST; i = i + 1)
+            words[addr_w + i] <= data_i[i * WIDTH +: WIDTH];
+    end
+
+    reg [WIDTH * BURST - 1:0] old_data1, old_data2;
+    always @(*) for (i = 0; i < BURST; i = i + 1) begin
+        old_data1[i * WIDTH +: WIDTH] = words[addr_r1 + i];
+        old_data2[i * WIDTH +: WIDTH] = words[addr_r2 + i];
     end
 
     generate if (READ_OLD) begin
-        assign data_o1 = words[addr_r1];
-        assign data_o2 = words[addr_r2];
+        assign data_o1 = old_data1;
+        assign data_o2 = old_data2;
     end else begin
-        assign data_o1 = (write_en && addr_w == addr_r1) ? data_i : words[addr_r1];
-        assign data_o2 = (write_en && addr_w == addr_r2) ? data_i : words[addr_r2];
+        assign data_o1 = (write_en && addr_w == addr_r1) ? data_i : old_data1;
+        assign data_o2 = (write_en && addr_w == addr_r2) ? data_i : old_data2;
     end endgenerate
 endmodule
 

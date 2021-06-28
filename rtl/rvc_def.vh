@@ -1,0 +1,44 @@
+`define C_ADDI4SPN  3'b000
+`define C_FLD       3'b001
+`define C_LQ        3'b001
+`define C_LW        3'b010
+`define C_FLW       3'b011
+`define C_LD        3'b011
+`define C_FSD       3'b101
+`define C_SQ        3'b101
+`define C_SW        3'b110
+`define C_FSW       3'b111
+`define C_SD        3'b111
+
+`define C_NOP       3'b000
+`define C_ADDI      3'b000
+`define C_JAL       3'b001
+`define C_ADDIW     3'b001
+`define C_LI        3'b010
+`define C_ADDI16SP  3'b011
+`define C_LUI       3'b011
+`define C_J         3'b101
+`define C_BEQZ      3'b110
+`define C_BNEZ      3'b111
+
+`define C_SLLI      3'b000
+`define C_FLDSP     3'b001
+`define C_LQSP      3'b001
+`define C_LWSP      3'b010
+`define C_FLWSP     3'b011
+`define C_LDSP      3'b011
+`define C_FSDSP     3'b101
+`define C_SQSP      3'b101
+`define C_SWSP      3'b110
+`define C_FSWSP     3'b111
+`define C_SDSP      3'b111
+
+`define TYPE_CR     1
+`define TYPE_CI     2
+`define TYPE_CSS    3
+`define TYPE_CIW    4
+`define TYPE_CL     5
+`define TYPE_CS     6
+`define TYPE_CA     7
+`define TYPE_CB     8
+`define TYPE_CJ     9

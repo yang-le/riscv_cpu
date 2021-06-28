@@ -24,19 +24,21 @@ endmodule
 module ram_dp #(
 	parameter WIDTH = 32,
 	parameter DEPTH = 1024,
+    parameter BURST = 1,
     parameter DATAFILE = ""
 )(
 	input clock,
 	input write_en,
 	input [$clog2(DEPTH) - 1:0] iaddr,
     input [$clog2(DEPTH) - 1:0] daddr,
-	input [WIDTH - 1:0] data_i,
-	output [WIDTH - 1:0] data_o,
-    output [WIDTH - 1:0] inst_o
+	input [WIDTH * BURST - 1:0] data_i,
+	output [WIDTH * BURST - 1:0] data_o,
+    output [WIDTH * BURST - 1:0] inst_o
 );
     generic_ram_dp #(
         .WIDTH(WIDTH),
         .DEPTH(DEPTH),
+        .BURST(BURST),
         .DATAFILE(DATAFILE)
     ) mem_inst (
         .clock(clock),

@@ -21,8 +21,9 @@ COMPILE_TARGET = \
 	-T$(TARGETDIR)/$(RISCV_TARGET)/link.ld $$< \
 	-o $$@; \
 	$$(RISCV_OBJCOPY) -O binary $$@ $(work_dir_isa)/$$*.bin; \
-	hexdump -v -e '/4 "%08x\n"' $(work_dir_isa)/$$*.bin > $(work_dir_isa)/$$*.txt
+	hexdump -v -e '/2 "%04x\n"' $(work_dir_isa)/$$*.bin > $(work_dir_isa)/$$*.txt
 
 RUN_TARGET = \
 	$(TARGET_SIM) $(TARGET_FLAGS) \
-	+data_file=$*.txt +dump_file=$*.signature.output > $@
+	+data_file=$*.txt +dump_file=temp > $@; \
+	awk '{tmp=$$0; getline; print $$0 tmp}' temp > $*.signature.output
