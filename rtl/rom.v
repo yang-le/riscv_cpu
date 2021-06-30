@@ -1,6 +1,6 @@
 
 module rom #(
-	parameter WIDTH = 32,
+	parameter WIDTH = 16,
 	parameter DEPTH = 1024,
 	parameter DATAFILE = ""
 )(
