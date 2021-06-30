@@ -24,7 +24,7 @@ wire [6:0] opcode;
 
 // IF_ID
 wire [XLEN - 1:0] id_pc, ex_pc, mem_pc;				// use by alu
-wire [31:0] id_inst;								// use by decode
+wire [31:0] if_inst, id_inst;						// use by decode
 
 // ID_EX		
 wire [4:0] rd, ex_rd, mem_rd, wb_rd;				// use by stage WB
@@ -61,8 +61,10 @@ wire if_id_bubble, id_ex_bubble, ex_mem_bubble, mem_wb_bubble;
 wire s_flush, ex_flush, mem_flush;
 
 // stage IF
-wire pc_pause, s_exception, s_rvc;
+wire pc_pause, s_exception;
 wire [XLEN - 1:0] npc, csr_pc;
+wire s_rvc = ENABLE_RVC && (if_inst[1:0] != 2'b11);
+
 pc #(
 	.XLEN(XLEN)
 ) pc_inst(
@@ -82,7 +84,7 @@ if_id #(
 	.pc_in(pc),
 	.inst_in(inst),
 	.pc_out(id_pc),
-	.inst_out(id_inst)
+	.inst_out(if_inst)
 );
 
 // stage ID
@@ -102,16 +104,19 @@ hazard hazard_inst(
 	.pipe_bubble({if_id_bubble, id_ex_bubble, ex_mem_bubble, mem_wb_bubble})
 );
 
-wire [31:0] id_rcv_inst;
-generate if (ENABLE_RVC)
+generate if (ENABLE_RVC) begin
+wire [31:0] c_inst;
 rvc #(
     .XLEN(XLEN)
 ) rvc_inst (
     .clock(clock),
     .pc(pc),
-    .inst_in(id_inst),
-    .inst_out(id_rcv_inst)
+    .inst_in(if_inst),
+    .inst_out(c_inst)
 );
+assign id_inst = s_rvc ? c_inst : if_inst;
+end else
+assign id_inst = if_inst;
 endgenerate
 
 decoder #(
@@ -119,7 +124,7 @@ decoder #(
 ) decoder_inst (
 	.clock(clock),
 	.pc(id_pc),
-    .inst(s_rvc ? id_rcv_inst : id_inst),
+    .inst(id_inst),
     .opcode(opcode),
 	.itype(itype),
     .funct3(funct3),
