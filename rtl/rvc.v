@@ -191,7 +191,7 @@ module rvc_inst_type #(
             `C_LI,
             `C_LUI:     itype = `TYPE_CI;
             `C_ADDIW:   itype = rv32 ? `TYPE_CJ : `TYPE_CI;
-            default:    itype = (inst[11:10] == 2'b11) ? `TYPE_CR : `TYPE_CB;
+            default:    itype = (inst[11:10] == 2'b11) ? `TYPE_CA : `TYPE_CB;
         endcase
         2: case (inst[15:13])
             `C_SLLI,

@@ -40,11 +40,12 @@ wire [XLEN - 1:0] mem_alu;							// store/load address
 // MEM_WB
 wire [XLEN - 1:0] wb_alu;							// write back to gpr
 
-// control EX	
+// control EX
 wire [4:0] id_alu_op, ex_alu_op;					// use by alu
 wire s_pc, ex_s_pc, s_imm, ex_s_imm, s_32, ex_s_32; // use by alu
 wire s_jalr, s_jump, s_branch, s_branch_zero;		// use by addr_gen
 wire ex_jalr, ex_jump, ex_branch, ex_branch_zero;	// use by addr_gen
+wire s_rvc, ex_s_rvc;
 
 wire s_csr, s_csrw, s_csri;							// use by csr
 wire ex_csr, ex_csrw, ex_csri;
@@ -63,7 +64,6 @@ wire s_flush, ex_flush, mem_flush;
 // stage IF
 wire pc_pause, s_exception;
 wire [XLEN - 1:0] npc, csr_pc;
-wire s_rvc = ENABLE_RVC && (if_inst[1:0] != 2'b11);
 
 pc #(
 	.XLEN(XLEN)
@@ -110,14 +110,16 @@ rvc #(
     .XLEN(XLEN)
 ) rvc_inst (
     .clock(clock),
-    .pc(pc),
+    .pc(id_pc),
     .inst_in(if_inst),
     .inst_out(c_inst)
 );
+assign s_rvc = if_inst[1:0] != 2'b11;
 assign id_inst = s_rvc ? c_inst : if_inst;
-end else
+end else begin
+assign s_rvc = 0;
 assign id_inst = if_inst;
-endgenerate
+end endgenerate
 
 decoder #(
 	.XLEN(XLEN)
@@ -166,7 +168,7 @@ id_ex #(
 	.rs1_in(id_rs1),
 	.rs2_in(id_rs2),
 	.imm_in(id_imm),
-	.ctrl_in({id_alu_op, s_pc, s_imm, s_32, s_jalr, s_branch, s_branch_zero, s_csr, s_csri, s_csrw, s_jump, s_store, s_load, s_flush, s_ecall, s_ebreak, s_mret, s_illegal, funct3}),
+	.ctrl_in({id_alu_op, s_pc, s_imm, s_32, s_jalr, s_branch, s_branch_zero, s_csr, s_csri, s_csrw, s_jump, s_store, s_load, s_flush, s_ecall, s_ebreak, s_mret, s_illegal, funct3, s_rvc}),
 	.rd_out(ex_rd),
 	.rs1_fw_out(ex_rs1_fw),
 	.rs2_fw_out(ex_rs2_fw),
@@ -174,7 +176,7 @@ id_ex #(
 	.rs1_out(ex_rs1),
 	.rs2_out(ex_rs2),	
 	.imm_out(ex_imm),
-	.ctrl_out({ex_alu_op, ex_s_pc, ex_s_imm, ex_s_32, ex_jalr, ex_branch, ex_branch_zero, ex_csr, ex_csri, ex_csrw, ex_jump, ex_store, ex_load, ex_flush, ex_ecall, ex_ebreak, ex_mret, ex_illegal, ex_funct3})
+	.ctrl_out({ex_alu_op, ex_s_pc, ex_s_imm, ex_s_32, ex_jalr, ex_branch, ex_branch_zero, ex_csr, ex_csri, ex_csrw, ex_jump, ex_store, ex_load, ex_flush, ex_ecall, ex_ebreak, ex_mret, ex_illegal, ex_funct3, ex_s_rvc})
 );
 
 // stage EX
@@ -243,9 +245,9 @@ endgenerate
 
 generate if (XLEN == 64) begin
 wire [XLEN - 1:0] alu_signed = $signed(alu_mux[31:0]);
-assign ex_alu = ex_csr ? csr_o : ex_jump ? ex_pc + 4 : ex_s_32 ? alu_signed : alu_mux;
+assign ex_alu = ex_csr ? csr_o : ex_jump ? ex_pc + (ex_s_rvc ? 2 : 4) : ex_s_32 ? alu_signed : alu_mux;
 end else
-assign ex_alu = ex_csr ? csr_o : ex_jump ? ex_pc + 4 : alu_mux;
+assign ex_alu = ex_csr ? csr_o : ex_jump ? ex_pc + (ex_s_rvc ? 2 : 4) : alu_mux;
 endgenerate
 
 wire [XLEN - 1:0] mtvec, mepc, mcause;
@@ -257,7 +259,7 @@ addr_gen #(
     .s_jalr(ex_jalr),
     .s_branch(ex_branch),
     .s_branch_zero(ex_branch_zero),
-	.s_rvc(s_rvc),
+	.s_rvc(ENABLE_RVC && inst[1:0] != 2'b11),
 	.pc(pc),
     .ex_pc(ex_pc),
     .imm(ex_imm),
