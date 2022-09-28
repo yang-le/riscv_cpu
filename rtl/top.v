@@ -1,7 +1,9 @@
 
 module top(
 	input clock,
-	input reset
+	input reset,
+	input uart_rx,
+	output uart_tx
 );
 
 `ifdef XLEN
@@ -12,6 +14,7 @@ localparam XLEN = 32;
 
 wire load, store;
 wire [XLEN - 1:0] load_data, store_data, inst, address, pc;
+wire [XLEN - 1:0] rx_data, tx_data;
 
 `ifdef VERILATOR
 localparam ADDR_HALT = 32'h20000000;
@@ -65,21 +68,95 @@ cpu #(
     .pc(pc)
 );
 
+wire [XLEN-1:0] mem_data;
+wire mem_cs = address[XLEN - 1:12] == 0;
 
-ram_dp #(
 `ifdef VERILATOR
+ram_dp #(
 	.DEPTH(1024 * 1024),
 	.BURST(XLEN / 16)
+) 
 `else
-	.WIDTH(XLEN)
+memory
 `endif
-) mem_inst (
+mem_inst (
 	.clock(clock),
-    .write_en(store),
+    .write_en(mem_cs & store),
 	.iaddr(pc[XLEN - 1:1]),
-	.daddr(address[XLEN - 1:1]),
+	.daddr(address[XLEN - 1:2]),
 	.data_i(store_data),
-	.data_o(load_data),
+	.data_o(mem_data),
 	.inst_o(inst)
 );
+
+localparam UART_BASE = 32'h1000;
+wire [7:0] uart_data;
+wire [XLEN - 1:0] uart_shift = address[$clog2(XLEN / 8) - 1:0] * 8;
+wire uart_cs = address[XLEN - 1:3] == (UART_BASE >> 3);
+
+uart #(
+	.CLOCK(25000000),
+	.BAUD(115200)
+) uart_inst (
+	.clock(clock),
+	.reset(reset),
+	.wren(uart_cs & store),
+    .addr(address),
+	.data_i(store_data >> uart_shift),
+	.data_o(uart_data),
+	.rx(uart_rx),
+	.tx(uart_tx)
+);
+
+assign load_data = mem_cs ? mem_data : uart_cs ? (uart_data << uart_shift) : 0;
+
+endmodule
+
+module rom32 (
+	input	[9:0]  address,
+	input	  clock,
+	output	[31:0]  q
+);
+
+rom1p rom_lo(
+	.address(address),
+	.clock(clock),
+	.q(q[15:0])
+);
+
+rom1p rom_hi(
+	.address(address + 1),
+	.clock(clock),
+	.q(q[31:16])
+);
+
+endmodule
+
+module memory (
+	input clock,
+	input write_en,
+	input [9:0] iaddr,
+   input [9:0] daddr,
+	input [31:0] data_i,
+	output [31:0] data_o,
+   output [31:0] inst_o
+);
+
+generic_ram #(
+	.WIDTH(32),
+	.DEPTH(1024)
+) ram_inst (
+	.clock(clock),
+	.write_en(write_en),
+	.addr(daddr),
+	.data_i(data_i),
+	.data_o(data_o)
+);
+
+rom32 rom_inst (
+	.address(iaddr),
+	.clock(~clock),
+	.q(inst_o)
+);
+
 endmodule

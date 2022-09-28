@@ -13,8 +13,8 @@ module pc #(
 		pc = 0;
 	end
 
-    always @(posedge clock) begin
-        if (reset)
+    always @(posedge clock or negedge reset) begin
+        if (~reset)
             pc <= RESET;
         else if (!pause)
             pc <= npc;

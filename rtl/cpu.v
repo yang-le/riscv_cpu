@@ -315,7 +315,7 @@ wire [XLEN - 1:0] mem_data;
 lu #(
 	.XLEN(XLEN)
 ) lu_inst(
-	.s_byte(address[0]),
+	.addr(address),
     .funct3(mem_funct3),
     .data_in(load_data),
     .data_out(mem_data)
@@ -324,7 +324,7 @@ lu #(
 su #(
 	.XLEN(XLEN)
 ) su_inst(
-	.s_byte(address[0]),
+	.addr(address),
     .funct3(mem_funct3),
 	.data_l(load_data),
     .data_in(mem_rs2),

@@ -131,8 +131,8 @@ module csr_regs #(
         mstatus = 1 << `MIE;
     end
 
-    always @(posedge clock) begin
-        if (reset) begin
+    always @(posedge clock or negedge reset) begin
+        if (~reset) begin
             mtvec <= 0;
             mepc <= 0;
             mcause <= 0;
@@ -157,7 +157,8 @@ module csr_regs #(
             mstatus <= mstatus_next;            
         end
 
-        if (s_csr) case (addr)
+        if (~reset);
+		  else if (s_csr) case (addr)
             MTVEC:      $display("csr: %x: %s MTVEC %x", pc_in, s_csrw ? "write" : "read", s_csrw ? data_w : data_out);
             MEPC:       $display("csr: %x: %s MEPC %x", pc_in, s_csrw ? "write" : "read", s_csrw ? data_w : data_out);
             MCAUSE:     $display("csr: %x: %s MCAUSE %x", pc_in, s_csrw ? "write" : "read", s_csrw ? data_w : data_out);
