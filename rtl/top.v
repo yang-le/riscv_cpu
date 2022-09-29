@@ -75,11 +75,7 @@ wire mem_cs = address[XLEN - 1:12] == 0;
 ram_dp #(
 	.DEPTH(1024 * 1024),
 	.BURST(XLEN / 16)
-) 
-`else
-memory
-`endif
-mem_inst (
+) mem_inst (
 	.clock(clock),
     .write_en(mem_cs & store),
 	.iaddr(pc[XLEN - 1:1]),
@@ -88,6 +84,19 @@ mem_inst (
 	.data_o(mem_data),
 	.inst_o(inst)
 );
+`else
+ram2p mem_inst (
+	.address_a(address[XLEN - 1:2]),
+	.address_b(pc[XLEN - 1:2]),
+	.clock(~clock),
+	.data_a(store_data),
+	//.data_b,
+	.wren_a(mem_cs & store),
+	//.wren_b(0),
+	.q_a(mem_data),
+	.q_b(inst)
+);
+`endif
 
 localparam UART_BASE = 32'h1000;
 wire [7:0] uart_data;
@@ -109,54 +118,5 @@ uart #(
 );
 
 assign load_data = mem_cs ? mem_data : uart_cs ? (uart_data << uart_shift) : 0;
-
-endmodule
-
-module rom32 (
-	input	[9:0]  address,
-	input	  clock,
-	output	[31:0]  q
-);
-
-rom1p rom_lo(
-	.address(address),
-	.clock(clock),
-	.q(q[15:0])
-);
-
-rom1p rom_hi(
-	.address(address + 1),
-	.clock(clock),
-	.q(q[31:16])
-);
-
-endmodule
-
-module memory (
-	input clock,
-	input write_en,
-	input [9:0] iaddr,
-   input [9:0] daddr,
-	input [31:0] data_i,
-	output [31:0] data_o,
-   output [31:0] inst_o
-);
-
-generic_ram #(
-	.WIDTH(32),
-	.DEPTH(1024)
-) ram_inst (
-	.clock(clock),
-	.write_en(write_en),
-	.addr(daddr),
-	.data_i(data_i),
-	.data_o(data_o)
-);
-
-rom32 rom_inst (
-	.address(iaddr),
-	.clock(~clock),
-	.q(inst_o)
-);
 
 endmodule
