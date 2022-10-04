@@ -11,19 +11,21 @@ ASFLAGS+=-mabi=ilp32 -march=rv32im
 
 LDFLAGS+=-Map test.map --gc-sections -m elf32lriscv -T
 
+OBJS= crt0.o test.o uart.o
+
 all: test.mif
 
-test: link.lds crt0.o test.o
+test.elf: link.lds $(OBJS)
 	$(LD) $(LDFLAGS) $^ -o $@
 
 test.mif : test.bin
 	./bin2mif.py -w 32 $< $@
 
-test.bin : test
+test.bin : test.elf
 	$(OBJCOPY) -O binary $< $@
 
 test.txt : test.bin
 	hexdump -v -e '/2 "%04x\n"' $< > $@
 
 clean:
-	rm test *.bin *.mif *.o *.map
+	rm *.elf *.bin *.mif *.o *.map
