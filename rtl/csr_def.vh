@@ -20,12 +20,12 @@
     localparam TIME = 12'hC01;      // time for RDTIME instruction
     localparam INSTRET = 12'hC02;   // instruction-retired counter for RDINSTRET instruction
     localparam HPMCOUNTER = 12'b1100_000x_xxxx;
-generate if (XLEN == 32) begin
+//generate if (XLEN == 32) begin
     localparam CYCLEH = 12'hC80;
     localparam TIMEH = 12'hC81;
     localparam INSTRETH = 12'hC82;
     localparam HPMCOUNTERH = 12'b1100_100x_xxxx;   
-end endgenerate
+//end endgenerate
 
     // Supervisor Trap Setup
     localparam SSTATUS = 12'h100;   // supervisor status register
@@ -71,9 +71,9 @@ end endgenerate
 
     // Hypervisor Counter/Timer Virtualization Registers
     localparam HTIMEDELTA = 12'h605;// delta for VS/VU-mode timer
-generate if (XLEN == 32)
+//generate if (XLEN == 32)
     localparam HTIMEDELTAH = 12'h615;
-endgenerate
+//endgenerate
 
     // Virtual Supervisor Registers
     localparam VSSTATUS = 12'h200;  // virtual supervisor status register
@@ -100,9 +100,9 @@ endgenerate
     localparam MIE = 12'h304;       // machine interrupt-enable register
     localparam MTVEC = 12'h305;     // machine trap-handler base address
     localparam MCOUNTEREN = 12'h306;// machine counter enable
-generate if (XLEN == 32)
+//generate if (XLEN == 32)
     localparam MSTATUSH = 12'h310;
-endgenerate
+//endgenerate
 
     // Machine Trap Handling
     localparam MSCRATCH = 12'h340;  // scratch register for machine trap handlers
@@ -115,9 +115,9 @@ endgenerate
 
     // Machine Memory Protection
     localparam PMPCFG = 12'b0011_1010_xxx0;
-generate if (XLEN == 32)
+//generate if (XLEN == 32)
     localparam PMPCFGH = 12'b0011_1010_xxx1;
-endgenerate
+//endgenerate
     localparam PMPADDR0 = 12'h3B0;
     localparam PMPADDR63 = 12'h3EF;
 
@@ -125,11 +125,11 @@ endgenerate
     localparam MCYCLE = 12'hB00;    // machine cycle counter
     localparam MINSTRET = 12'hB02;  // machine instructions-retired counter
     localparam MHPMCOUNTER = 12'b1011_000x_xxxx;
-generate if (XLEN == 32) begin
+//generate if (XLEN == 32) begin
     localparam MCYCLEH = 12'hB80;
     localparam MINSTRETH = 12'hB82;
     localparam MHPMCOUNTERH = 12'b1011_100x_xxxx;   
-end endgenerate    
+//end endgenerate    
 
     // Machine Counter Setup
     localparam MCOUNTINHIBIT = 12'h320; // machine counter-inhibit register

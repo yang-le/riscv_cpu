@@ -61,6 +61,7 @@ cpu #(
 	.reset(reset),
 	.load_data(load_data),
     .inst(inst),
+	.mtime(mtime_out),
 	.mem_load(load),
 	.mem_store(store),
 	.store_data(store_data),
@@ -68,8 +69,9 @@ cpu #(
     .pc(pc)
 );
 
-wire [XLEN-1:0] mem_data;
-wire mem_cs = address[XLEN - 1:12] == 0;
+wire ram_cs;
+wire [XLEN-1:0] ram_addr;
+wire [XLEN-1:0] to_ram, from_ram;
 
 `ifdef VERILATOR
 ram_dp #(
@@ -77,31 +79,30 @@ ram_dp #(
 	.BURST(XLEN / 16)
 ) mem_inst (
 	.clock(clock),
-    .write_en(mem_cs & store),
+    .write_en(ram_cs & store),
 	.iaddr(pc[XLEN - 1:1]),
-	.daddr(address[XLEN - 1:2]),
-	.data_i(store_data),
-	.data_o(mem_data),
+	.daddr(ram_addr),
+	.data_i(to_ram),
+	.data_o(from_ram),
 	.inst_o(inst)
 );
 `else
 ram2p mem_inst (
-	.address_a(address[XLEN - 1:2]),
+	.address_a(ram_addr),
 	.address_b(pc[XLEN - 1:2]),
 	.clock(~clock),
-	.data_a(store_data),
+	.data_a(to_ram),
 	//.data_b,
-	.wren_a(mem_cs & store),
+	.wren_a(ram_cs & store),
 	//.wren_b(0),
-	.q_a(mem_data),
+	.q_a(from_ram),
 	.q_b(inst)
 );
 `endif
 
-localparam UART_BASE = 32'h1000;
-wire [7:0] uart_data;
-wire [XLEN - 1:0] uart_shift = address[$clog2(XLEN / 8) - 1:0] * 8;
-wire uart_cs = address[XLEN - 1:3] == (UART_BASE >> 3);
+wire uart_cs;
+wire [XLEN - 1:0] uart_addr;
+wire [7:0] to_uart, from_uart;
 
 uart #(
 	.CLOCK(25000000),
@@ -110,13 +111,136 @@ uart #(
 	.clock(clock),
 	.reset(reset),
 	.wren(uart_cs & store),
-    .addr(address),
-	.data_i(store_data >> uart_shift),
-	.data_o(uart_data),
+    .addr(uart_addr),
+	.data_i(to_uart),
+	.data_o(from_uart),
 	.rx(uart_rx),
 	.tx(uart_tx)
 );
 
-assign load_data = mem_cs ? mem_data : uart_cs ? (uart_data << uart_shift) : 0;
+wire timer_cs;
+wire [XLEN - 1:0] timer_addr;
+wire [63:0] to_timer, from_timer, mtime_out;
 
+timer #(
+	.CLOCK(25000000)
+) timer_inst (
+	.clock(clock),
+	.reset(reset),
+	.wren(timer_cs & store),
+	.addr(timer_addr[1]),
+	.data_i(to_timer),
+	.data_o(from_timer),
+	.mtime_out(mtime_out)
+	//.output intr
+);
+
+addr_bus #(
+	.XLEN(XLEN)
+) addr_bus_inst (
+	.address(address),
+	.ram_cs(ram_cs),
+	.ram_addr(ram_addr),
+	.uart_cs(uart_cs),
+	.uart_addr(uart_addr),
+	.timer_cs(timer_cs),
+	.timer_addr(timer_addr)
+);
+
+data_bus #(
+	.XLEN(XLEN)
+) data_bus_inst (
+	.ram_cs(ram_cs),
+	.ram_addr(ram_addr),
+	.uart_cs(uart_cs),
+	.uart_addr(uart_addr),
+	.timer_cs(timer_cs),
+	.timer_addr(timer_addr),
+	.from_ram(from_ram),
+	.from_uart(from_uart),
+	.from_timer(from_timer),
+	.from_cpu(store_data),
+	.to_ram(to_ram),
+	.to_uart(to_uart),
+	.to_timer(to_timer),
+	.to_cpu(load_data)
+);
+
+endmodule
+
+module addr_bus #(
+    parameter XLEN = 32,
+	parameter RAM_SIZE = 32'h1000,
+	parameter RAM_XLEN = 32,
+	parameter UART_SIZE = 8,
+	parameter UART_XLEN = 8,
+	parameter TIMER_SIZE = 16,
+	parameter TIMER_XLEN = XLEN
+)(
+    input [XLEN - 1:0] address,
+	output ram_cs,
+    output [XLEN - 1:$clog2(RAM_XLEN / 8)] ram_addr,
+	output uart_cs,
+	output [XLEN - 1:$clog2(UART_XLEN / 8)] uart_addr,
+	output timer_cs,
+	output [XLEN - 1:$clog2(TIMER_XLEN / 8)] timer_addr
+);
+
+localparam RAM_BASE = 0;
+localparam UART_BASE = RAM_BASE + RAM_SIZE;
+localparam TIMER_BASE = UART_BASE + UART_SIZE;
+
+assign ram_cs = (RAM_BASE <= address) && (address < RAM_BASE + RAM_SIZE);
+wire [XLEN - 1:0] ram_addr_b = address - RAM_BASE;
+assign ram_addr = ram_addr_b[XLEN - 1:$clog2(RAM_XLEN / 8)];
+
+assign uart_cs = (UART_BASE <= address) && (address < TIMER_BASE + UART_SIZE);
+wire [XLEN - 1:0] uart_addr_b = address - UART_BASE;
+assign uart_addr = uart_addr_b[XLEN - 1:$clog2(UART_XLEN / 8)];
+
+assign timer_cs = (TIMER_BASE <= address) && (address < TIMER_BASE + TIMER_SIZE);
+wire [XLEN - 1:0] timer_addr_b = address - TIMER_BASE;
+assign timer_addr = timer_addr_b[XLEN - 1:$clog2(TIMER_XLEN / 8)];
+
+endmodule
+
+module data_bus #(
+    parameter XLEN = 32,
+	parameter RAM_XLEN = 32,
+	parameter UART_XLEN = 8,
+	parameter TIMER_XLEN = 64
+)(
+	input ram_cs,
+	input [XLEN - 1:0] ram_addr,
+	input uart_cs,
+	input [XLEN - 1:0] uart_addr,
+	input timer_cs,
+	input [XLEN - 1:0] timer_addr,
+	input [RAM_XLEN - 1:0] from_ram,
+	input [UART_XLEN - 1:0] from_uart,
+	input [TIMER_XLEN - 1:0] from_timer,
+	input [XLEN - 1:0] from_cpu,
+	output [RAM_XLEN - 1:0] to_ram,
+	output [UART_XLEN - 1:0] to_uart,
+	output [TIMER_XLEN - 1:0] to_timer,
+	output [XLEN - 1:0] to_cpu
+);
+
+assign to_ram = from_cpu;
+
+wire [XLEN - 1:0] uart_shift = uart_addr[$clog2(XLEN / 8) - 1:0] * 8;
+assign to_uart = from_cpu >> uart_shift;
+
+wire [XLEN - 1:0] timer_data;
+generate if (XLEN == 64) begin
+assign to_timer = from_cpu;
+assign timer_data = from_timer;
+end else
+assign to_timer = timer_addr[0] ? from_cpu << 32 : from_cpu;
+assign timer_data = timer_addr[0] ? from_timer[63:32] : from_timer[31:0];
+endgenerate
+
+assign to_cpu = ram_cs ? from_ram :
+				uart_cs ? (from_uart << uart_shift) :
+				timer_cs ? timer_data : 0;
 endmodule

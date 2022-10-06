@@ -162,7 +162,7 @@ localparam S_IDLE = 4'd10;
 
 reg [3:0] state, n_state;
 
-always @(posedge clk)
+always @(posedge clk or negedge reset)
 	if (~reset)
 		state <= S_IDLE;
 	else
@@ -215,7 +215,7 @@ localparam S_IDLE = 4'd10;
 
 reg [3:0] state, n_state;
 
-always @(posedge clk)
+always @(posedge clk or negedge reset)
 	if (~reset)
 		state <= S_IDLE;
 	else

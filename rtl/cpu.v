@@ -10,6 +10,7 @@ module cpu #(
 	input reset,
 	input [XLEN - 1:0] load_data,
 	input [31:0] inst,
+	input [63:0] mtime,
 	output mem_load,
 	output mem_store,
 	output [XLEN - 1:0] store_data,
@@ -287,6 +288,7 @@ csr #(
 	.mem_addr(ex_alu),
 	.pc_in(ex_pc),
 	.data_in(ex_csri ? ex_rs1_fw : f_rs1),
+	.mtime(mtime),
 	.s_exception(s_exception),
 	.pc_out(csr_pc),
 	.data_out(csr_o)

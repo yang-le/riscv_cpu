@@ -19,6 +19,7 @@ module csr #(
     input [XLEN - 1:0] mem_addr,
     input [XLEN - 1:0] pc_in,
     input [XLEN - 1:0] data_in,
+	input [63:0] mtime,
     output s_exception,
     output [XLEN - 1:0] pc_out,
 	output [XLEN - 1:0] data_out
@@ -91,6 +92,7 @@ module csr #(
         .mcause_next(mcause_next),
         .mtval_next(mtval_next),
         .mstatus_next(mstatus_next),
+		.mtime(mtime),
         .data_out(data_out),
         .mepc(mepc),
         .mcause(mcause),
@@ -111,6 +113,7 @@ module csr_regs #(
     input [XLEN - 1:0] pc_in,
     input [XLEN - 1:0] data_w,
     input [XLEN - 1:0] mepc_next, mcause_next, mtval_next, mstatus_next,
+	input [63:0] mtime,
     output reg [XLEN - 1:0] data_out,
     output reg [XLEN - 1:0] mepc, mcause, mtval, mstatus,
     output reg [XLEN - 1:0] mtvec
@@ -119,6 +122,7 @@ module csr_regs #(
 
     // inner regs
     reg [XLEN - 1:0] mie, mip, mscratch;
+	reg [XLEN - 1:0] mcycle, mcycleh, minstret, minstreth;
 
     initial begin
         mtvec = 0;
@@ -129,6 +133,11 @@ module csr_regs #(
         mtval = 0;
         mscratch = 0;
         mstatus = 1 << `MIE;
+		
+		mcycle = 0;
+		mcycleh = 0;
+		minstret = 0;
+		minstreth = 0;
     end
 
     always @(posedge clock or negedge reset) begin
@@ -141,7 +150,12 @@ module csr_regs #(
             mtval <= 0;
             mscratch <= 0;
             mstatus <= 1 << `MIE;
-        end else if (s_csrw) case (addr)
+			
+			mcycle <= 0;
+			mcycleh <= 0;
+			minstret <= 0;
+			minstreth <= 0;
+        end else if (s_csrw & addr[11:10] != 2'b11) case (addr)
             MTVEC:      mtvec <= data_w;
             MEPC:       mepc <= data_w;
             MCAUSE:     mcause <= data_w;
@@ -150,15 +164,21 @@ module csr_regs #(
             MTVAL:      mtval <= data_w;
             MSCRATCH:   mscratch <= data_w;
             MSTATUS:    mstatus <= data_w;
+			
+			MCYCLE:		mcycle <= data_w;
+			MCYCLEH:	mcycleh <= data_w;
+			MINSTRET:	minstret <= data_w;
+			MINSTRETH:	minstreth <= data_w;
         endcase else begin
             mepc <= mepc_next;
             mcause <= mcause_next;
             mtval <= mtval_next;
-            mstatus <= mstatus_next;            
+            mstatus <= mstatus_next;
+			{mcycleh, mcycle} <= {mcycleh, mcycle} + 1;
         end
 
         if (~reset);
-		  else if (s_csr) case (addr)
+		else if (s_csr) case (addr)
             MTVEC:      $display("csr: %x: %s MTVEC %x", pc_in, s_csrw ? "write" : "read", s_csrw ? data_w : data_out);
             MEPC:       $display("csr: %x: %s MEPC %x", pc_in, s_csrw ? "write" : "read", s_csrw ? data_w : data_out);
             MCAUSE:     $display("csr: %x: %s MCAUSE %x", pc_in, s_csrw ? "write" : "read", s_csrw ? data_w : data_out);
@@ -167,7 +187,18 @@ module csr_regs #(
             MTVAL:      $display("csr: %x: %s MTVAL %x", pc_in, s_csrw ? "write" : "read", s_csrw ? data_w : data_out);
             MSCRATCH:   $display("csr: %x: %s MSCRATCH %x", pc_in, s_csrw ? "write" : "read", s_csrw ? data_w : data_out);
             MSTATUS:    $display("csr: %x: %s MSTATUS %x", pc_in, s_csrw ? "write" : "read", s_csrw ? data_w : data_out);
-            default:    $display("error: %x: try to %s unknow address %x", pc_in, s_csrw ? "write" : "read", addr);
+			
+			MCYCLE:     $display("csr: %x: %s MCYCLE %x", pc_in, s_csrw ? "write" : "read", s_csrw ? data_w : data_out);
+			MCYCLEH:    $display("csr: %x: %s MCYCLEH %x", pc_in, s_csrw ? "write" : "read", s_csrw ? data_w : data_out);
+			MINSTRET:   $display("csr: %x: %s MINSTRET %x", pc_in, s_csrw ? "write" : "read", s_csrw ? data_w : data_out);
+			MINSTRETH:  $display("csr: %x: %s MINSTRETH %x", pc_in, s_csrw ? "write" : "read", s_csrw ? data_w : data_out);
+            CYCLE:      $display("csr: %x: %s CYCLE %x", pc_in, s_csrw ? "write" : "read", s_csrw ? data_w : data_out);
+			CYCLEH:     $display("csr: %x: %s CYCLEH %x", pc_in, s_csrw ? "write" : "read", s_csrw ? data_w : data_out);
+            TIME:       $display("csr: %x: %s TIME %x", pc_in, s_csrw ? "write" : "read", s_csrw ? data_w : data_out);
+			TIMEH:      $display("csr: %x: %s TIMEH %x", pc_in, s_csrw ? "write" : "read", s_csrw ? data_w : data_out);
+			INSTRET:    $display("csr: %x: %s INSTRET %x", pc_in, s_csrw ? "write" : "read", s_csrw ? data_w : data_out);
+			INSTRETH:   $display("csr: %x: %s INSTRETH %x", pc_in, s_csrw ? "write" : "read", s_csrw ? data_w : data_out);		
+			default:    $display("error: %x: try to %s unknow address %x", pc_in, s_csrw ? "write" : "read", addr);
         endcase
     end
 
@@ -180,6 +211,17 @@ module csr_regs #(
         MTVAL:      data_out = mtval;
         MSCRATCH:   data_out = mscratch;
         MSTATUS:    data_out = mstatus;
+		
+		CYCLE,
+		MCYCLE:		data_out <= mcycle;
+		CYCLEH,
+		MCYCLEH:	data_out <= mcycleh;
+		TIME:		data_out <= (XLEN == 32) ? mtime[31:0] : mtime;
+		TIMEH:		data_out <= mtime[63:32];
+		INSTRET,
+		MINSTRET:	data_out <= minstret;
+		INSTRETH,
+		MINSTRETH:	data_out <= minstreth;
         default:    data_out = 0;
     endcase
 endmodule
