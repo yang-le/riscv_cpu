@@ -69,24 +69,24 @@ cpu #(
     .pc(pc)
 );
 
-wire ram_cs;
-wire [XLEN-1:0] ram_addr;
-wire [XLEN-1:0] to_ram, from_ram;
-
 `ifdef VERILATOR
 ram_dp #(
 	.DEPTH(1024 * 1024),
 	.BURST(XLEN / 16)
 ) mem_inst (
 	.clock(clock),
-    .write_en(ram_cs & store),
+    .write_en(store),
 	.iaddr(pc[XLEN - 1:1]),
-	.daddr(ram_addr),
-	.data_i(to_ram),
-	.data_o(from_ram),
+	.daddr(address[XLEN - 1:1]),
+	.data_i(store_data),
+	.data_o(load_data),
 	.inst_o(inst)
 );
 `else
+wire ram_cs;
+wire [XLEN-1:0] ram_addr;
+wire [XLEN-1:0] to_ram, from_ram;
+
 ram2p mem_inst (
 	.address_a(ram_addr),
 	.address_b(pc[XLEN - 1:2]),
@@ -98,7 +98,6 @@ ram2p mem_inst (
 	.q_a(from_ram),
 	.q_b(inst)
 );
-`endif
 
 wire uart_cs;
 wire [XLEN - 1:0] uart_addr;
@@ -165,7 +164,7 @@ data_bus #(
 	.to_timer(to_timer),
 	.to_cpu(load_data)
 );
-
+`endif
 endmodule
 
 module addr_bus #(

@@ -1,38 +1,15 @@
-#include "uart.h"
+#include "char.h"
+#include "timer.h"
 
-void putc(char c)
+const char* conv_u64_str(uint64_t time)
 {
-	if (c == '\n')
-		uart_tx('\r');
-	uart_tx(c);
-}
-
-void puts(const char* s)
-{
-	while(*s)
-		putc(*s++);
-}
-
-char getc()
-{
-	char c = uart_rx();
-	if (c == '\r')
-		c = '\n';
-	return c;
-}
-
-char* gets()
-{
-	static char buf[64] = {0};
-
-	while(1)
-		for (int i = 0; i < sizeof(buf) - 1; ++i) {
-			buf[i] = getc();
-			if (buf[i] == '\n') {
-				buf[i + 1] = 0;
-				return buf;
-			}
-		}
+	static char buf[16] = {0};
+	
+	int i = 14;
+	for (; (i >= 0) && (time > 0); --i, time /= 10)
+		buf[i] = time % 10;
+	
+	return buf + i + 1;
 }
 
 int main()
@@ -40,8 +17,10 @@ int main()
 	uart_init();
 
 	while(1) {
-		puts("Hello FPGA!\n");
-		char *input = gets();
+		uint64_t t = get_time();
+		puts(conv_u64_str(t));
+		puts(" Hello FPGA!\n");
+		const char *input = gets();
 		int i = 1000000;
 		while(i--);
 		puts("Your input is ");

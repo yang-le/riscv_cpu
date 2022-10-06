@@ -55,19 +55,19 @@ int main(int argc, char** argv, char** env) {
 
     // Set Vtop's input signals
     top->clock = 1;
-    top->reset = 0;
+    top->reset = 1;
     top->eval();
 
     top->clock = 0;
-    top->reset = 1;
+    top->reset = 0;
     top->eval();
 
     top->clock = 1;
-    top->reset = 1;
+    top->reset = 0;
     top->eval();
 
     top->clock = 0;
-    top->reset = 0;
+    top->reset = 1;
     top->eval();
 
     // Simulate until $finish

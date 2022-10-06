@@ -13,7 +13,11 @@ module pc #(
 		pc = 0;
 	end
 
+`ifdef VERILATOR
+    always @(posedge clock) begin
+`else
     always @(posedge clock or negedge reset) begin
+`endif
         if (~reset)
             pc <= RESET;
         else if (!pause)
